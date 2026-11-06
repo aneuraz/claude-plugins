@@ -55,12 +55,13 @@ Save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-facts.md`, sibling of the des
   source: "2026-08-31-auth-refresh-design.md §Token lifecycle"
   owner: backend
   requires: []             # optional: resource names the check needs (e.g. a database); see facts --exclude-requires
+  superseded_by: AUTH-007  # @superseded only: the id, or a list of ids, of the facts binding in its place
 ```
 
 Rules:
 - `check` is **a command that runs this fact's test alone; exit code 0 is the truth condition**, and it names its test. Never a subjective criterion. Use the same command format as writing-plans verification steps (`Run:` / `Expected:`) so plans can embed it verbatim.
 - `check` takes **one of the project's fixed forms** (the runner, its environment flags, the selector syntax, verbosity), listed in `[facts] check_forms` of `.claude/project.toml`; the gate refuses a pytest check in none of them: a flag outside the form (a test filter, a plugin switch, a shell operator) would make the command differ from what the reports prove. When `[facts] check_forms` is absent, say the forms are not configured and that the gate audits none. The selector syntax is the language's: for pytest see `rules-python:pytest-check-selector`.
-- Lifecycle: `@draft` (invariant identified, no test yet) → `@spec` (test written, expected to fail until implemented; that is TDD) → `@implemented` (check green in CI) → `@superseded` (the invariant was replaced or dropped by a later design; the fact stays for history and the gate skips it).
+- Lifecycle: `@draft` (invariant identified, no test yet) → `@spec` (test written, expected to fail until implemented; that is TDD) → `@implemented` (check green in CI) → `@superseded` (the invariant was replaced by a later design; the fact stays for history and the gate skips it). A superseded fact names its successors in `superseded_by`, an id or a list of ids; each must exist and be `@implemented`, or the gate fails. A dropped invariant has no successor: delete its fact from the fact-set and its id from the design doc.
 - `source` covers only the fact→spec direction; the spec→fact direction is Step 2b. One without the other is half a contract.
 - One fact = one assertion. No "and". Split.
 - For deliberately non-deterministic behavior (LLM/NLP output), write properties over **structural or bound invariants** (valid output schema, floor score on a gold set, p95 latency), never exact text equality.
