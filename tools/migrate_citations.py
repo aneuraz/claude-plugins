@@ -15,7 +15,7 @@ import argparse
 import posixpath
 import re
 import sys
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -70,6 +70,49 @@ def load_classification(path: Path, source: str) -> dict[str, Target]:
         pack = target if target.startswith("rules-") else None
         table[slug] = Target(pack, cells[2] == "yes")
     return table
+
+
+_TICKS = re.compile(r"`+")
+
+
+def _code_spans(text: str) -> list[tuple[int, int]]:
+    """Inline code spans (CommonMark: a backtick run closes at the next run of equal length)."""
+    runs = [(m.start(), m.end()) for m in _TICKS.finditer(text)]
+    spans: list[tuple[int, int]] = []
+    i = 0
+    while i < len(runs):
+        length = runs[i][1] - runs[i][0]
+        close = next(
+            (j for j in range(i + 1, len(runs)) if runs[j][1] - runs[j][0] == length), None
+        )
+        if close is None:
+            i += 1
+            continue
+        spans.append((runs[i][0], runs[close][1]))
+        i = close + 1
+    return spans
+
+
+def _sub_links(
+    text: str,
+    spans: list[tuple[int, int]],
+    link: Callable[[re.Match[str], bool], str],
+) -> str:
+    """`_LINK.sub` where a `[` inside an inline code span cannot open a label leaving the span."""
+    pieces: list[str] = []
+    pos = 0
+    while match := _LINK.search(text, pos):
+        start = match.start()
+        host = next((s for s in spans if s[0] <= start < s[1]), None)
+        if host is not None and match.end() > host[1]:
+            pieces.append(text[pos : start + 1])
+            pos = start + 1
+            continue
+        pieces.append(text[pos:start])
+        pieces.append(link(match, host is not None))
+        pos = match.end()
+    pieces.append(text[pos:])
+    return "".join(pieces)
 
 
 _FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
@@ -158,9 +201,10 @@ def rewrite(
         if kind == "code":
             return result
         handled: list[tuple[int, int]] = []  # spans of `part` the link pass dealt with
+        spans = [] if fenced else _code_spans(result)
 
         # `result` and `part` differ only inside code citations, never in newlines.
-        def link(match: re.Match[str]) -> str:
+        def link(match: re.Match[str], in_span: bool) -> str:
             label, destination = match.group(1), match.group(2)
             path, _, fragment = destination.partition("#")
             if not path.endswith(".md") or _SCHEME.match(path):
@@ -170,14 +214,15 @@ def rewrite(
                 return match.group(0)
             handled.append(match.span())
             line = first + result.count("\n", 0, match.start())
-            if fenced:
-                events.append(Event("kept", rel, line, match.group(0), None, "inside a code fence"))
+            if fenced or in_span:
+                reason = "inside a code fence" if fenced else "inside an inline code span"
+                events.append(Event("kept", rel, line, match.group(0), None, reason))
                 return match.group(0)
             target = table.get(slug)
             new = f"{label} (`{target.pack_citation}`)" if target and target.pack_citation else ""
             return decide(slug, fragment, match.group(0), new, line)
 
-        out = _LINK.sub(link, result)
+        out = _sub_links(result, spans, link)
         if not fenced:
             # Residual scan: a reference to a moved or unknown rule page that no pass handled.
             for found in _PATH.finditer(result):
@@ -186,6 +231,7 @@ def rewrite(
                     slug is None
                     or not ("rules/" in found.group(0) or _LINKY.search(result[: found.start()]))
                     or any(s <= found.start() < e for s, e in handled)
+                    or any(s <= found.start() < e for s, e in spans)
                 ):
                     continue
                 target = table.get(slug)

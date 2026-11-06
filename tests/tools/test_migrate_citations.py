@@ -212,3 +212,27 @@ def test_unhandled_link_forms_unmapped(table, line):
 def test_handled_link_not_double_reported(table):
     _, events = run("[a](wiki/rules/x.md#frag)\n", "docs/guide.md", table)
     assert [e.reason for e in events] == ["anchor on a moved page"]
+
+
+def test_bracket_in_code_span_does_not_open_a_link(table):
+    line = "hold none of `{`, `[`, a quote ([Logs MUST NOT x content](../rules/x.md))\n"
+    new, events = run(line, "docs/wiki/reference/r.md", table)
+    assert new == (
+        "hold none of `{`, `[`, a quote (Logs MUST NOT x content (`rules-security:x`))\n"
+    )
+    assert [e.kind for e in events] == ["rewrite"]
+
+
+def test_link_inside_code_span_kept_untouched(table):
+    line = "write `[a](../rules/x.md)` and ``[b](../rules/x.md)`` here\n"
+    new, events = run(line, "docs/wiki/reference/r.md", table)
+    assert new == line
+    assert [e.kind for e in events] == ["kept", "kept"]
+    assert all(e.reason == "inside an inline code span" for e in events)
+
+
+def test_path_in_code_span_not_reported_unmapped(table):
+    line = "see `docs/wiki/rules/x.md` and an unmatched ` tick [a](../rules/x.md)\n"
+    new, events = run(line, "docs/wiki/reference/r.md", table)
+    assert "`docs/wiki/rules/x.md`" in new
+    assert [e.kind for e in events] == ["rewrite"]
