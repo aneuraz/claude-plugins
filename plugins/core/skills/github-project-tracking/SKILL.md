@@ -295,6 +295,27 @@ This is why the draft PR opens early: `Closes` added task by task trigger the wo
 
 Measured: editing the description of an **existing** PR does not trigger this workflow; only creation does.
 
+## What you discover along the way
+
+Four cases, four destinations. **None is settled in silence.**
+
+| Discovery | Action |
+|---|---|
+| A defect outside the task's scope | `bug` issue. Do not fix it in the current PR (surgical) |
+| A deliberate deferral | `debt` issue **and** a debt page, through `core:updating-the-wiki` |
+| A trade-off that goes beyond the task | `decision` issue, once `core:reading-the-wiki` has found no decision page that settles it. Do not invent the answer |
+| A fact whose test is weaker than its statement | `bug` issue + amendment of the fact. **The most insidious class of defect**: the test is green and it lies |
+
+A **debt** is worth something only if it states **what would make it unacceptable**: that clause tells when to reopen the subject. Without it, the card is a wish.
+
+These cards do not replace the wiki; they make it visible. The wiki explains *why*, the card tracks *the state*.
+
+## Closing a decision
+
+A `decision` issue is not closed with a comment. It is closed by a **decision page**, written through `core:updating-the-wiki`: the chosen trade-off **and its reason**, not only the outcome. Put the link to that commit in the issue before closing it.
+
+Without a written reason, the next contributor will reopen the decision.
+
 ## Labels
 
 Check what exists before creating anything. A new repository has only GitHub's default labels:
