@@ -22,6 +22,7 @@ Two files beside `rules/` are not rules:
 - Every request MUST be authenticated — `rules-security:every-request-authenticated`
 - The service MUST enforce explicit bounds — `rules-security:explicit-service-bounds`
 - Input schemas MUST refuse unknown fields — `rules-security:input-schemas-refuse-unknown-fields`
+- The lockfile MUST be versioned and authoritative — `rules-security:lockfile-versioned-and-authoritative`
 - Losing a backend MUST NOT bring the service down — `rules-security:losing-a-backend-keeps-the-service-up`
 - NEVER write a version from memory — `rules-security:never-write-a-version-from-memory`
 - A type that carries sensitive data MUST NOT have a default representation — `rules-security:no-default-repr-for-sensitive-types`

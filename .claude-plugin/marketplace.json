@@ -33,6 +33,16 @@
       "name": "rules-untrusted-parsing",
       "source": "./plugins/rules-untrusted-parsing",
       "description": "Rules for parsing files supplied by third parties, cited by slug."
+    },
+    {
+      "name": "rules-rust",
+      "source": "./plugins/rules-rust",
+      "description": "Rust rules, cited by slug."
+    },
+    {
+      "name": "rules-swift",
+      "source": "./plugins/rules-swift",
+      "description": "Swift rules, cited by slug."
     }
   ]
 }

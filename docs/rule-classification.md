@@ -51,3 +51,19 @@ Where each rule page of `candle`'s `docs/wiki/rules/` (at `275bce0`) goes, by th
 | candle:vet-and-trace-every-direct-dependency | rules-security:vet-and-trace-every-direct-dependency | | |
 | candle:CLAUDE.md#4-completion-gate | rules-python:ruff-and-noqa-discipline | | Not a wiki page: `CLAUDE.md` §4's ruff paragraph; the rest of §4 is `core`'s `base.md`. |
 | candle:SECURITY.md | rules-health-data:data-breach-notification | | Not a wiki page: `SECURITY.md`'s data-breach section, made a rule so `wiki search` finds it; the whole policy, this section included, is also `rules-security`'s `security-policy-template.md`. |
+| capture:§1.1 | rules-rust:stable-toolchain-pinned-in-rust-toolchain-toml | | Realisation of `rules-security:runtime-defined-by-the-repository` and `rules-security:deal-with-outdated-dependencies`; no second generic rule. |
+| capture:§1.2 | rules-security:lockfile-versioned-and-authoritative | | New language-neutral principle (the lockfile is committed and authoritative), written once; `rules-python:uv-lock-is-authoritative` was its Python realisation. |
+| capture:§1.2 (Cargo) | rules-rust:cargo-lock-is-versioned | | Realisation of the security rule above (ANSSI `DENV-CARGO-LOCK`). |
+| capture:§1.2 (SwiftPM) | rules-swift:package-resolved-is-versioned | | Realisation of the security rule above; the "no dependency" line is the general preference for system frameworks. |
+| capture:§1.3 | rules-rust:dependency-trace-records-unsafe-and-prefers-std | yes | The trace's `unsafe` column is the Rust realisation of `rules-security:vet-and-trace-every-direct-dependency`; the agent's zero-dependency choice and its `docs/dependencies.md` stay. |
+| capture:§1.4 | rules-rust:dependency-trace-records-unsafe-and-prefers-std | yes | The 18-month warning is already in `rules-security:vet-and-trace-every-direct-dependency`; the `std` before a crate lesson goes in the same Rust rule; the `fs2` case stays. |
+| capture:§1.5 | rules-rust:cargo-audit-and-deny-on-every-pr | | Realisation of the dependency audit of `rules-security:ci-gates`. |
+| capture:§1.6 | rules-rust:cargo-outdated-before-each-cycle | | Realisation of `rules-security:deal-with-outdated-dependencies`. |
+| capture:§1.7 | rules-rust:no-build-overrides-from-the-environment | | Realisation of `rules-security:runtime-defined-by-the-repository`. |
+| capture:§2.1 | rules-rust:forbid-unsafe-code-in-every-crate | | "No task of the plan needs it" stays. |
+| capture:§2.2 | rules-rust:lifting-the-unsafe-ban-is-a-decision | | |
+| capture:§2.3 | rules-swift:check-system-api-return-codes | yes | Split in two Swift rules; the Carbon hotkey, the review count and the spec invariant stay in the project. |
+| capture:§2.3 (as!) | rules-swift:never-force-cast-a-system-value | | |
+| capture:§7 | rules-rust:rust-ci-gates | yes | The `cargo` commands are the Rust realisation of `rules-security:ci-gates`; the no-leak test it asks for is already `rules-security:ci-gates`. The `facts_check.py` lines are the project's own (the method is `core`'s `spec-to-facts`). |
+| capture:§7 (swift) | rules-swift:swift-test-in-ci | | The `--package-path agent` and the milestone stay. |
+| capture:§0, §3, §4, §5, §6, §8 | stays | | The project's own threat model, spool, content-leak policy, storage, capture integrity and reopening conditions. |

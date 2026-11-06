@@ -51,7 +51,10 @@ These rules are the source of truth for everything that touches dependencies. A 
 - `rules-security:deal-with-outdated-dependencies`
 - `rules-security:sbom-at-each-release`
 - `rules-security:runtime-defined-by-the-repository`
+- `rules-security:lockfile-versioned-and-authoritative`
 - Python: `rules-python:pinned-stable-python`, `rules-python:uv-lock-is-authoritative`, `rules-python:pip-audit-on-every-pr-and-daily`, `rules-python:version-never-written-by-hand`
+- Rust: `rules-rust:stable-toolchain-pinned-in-rust-toolchain-toml`, `rules-rust:cargo-lock-is-versioned`, `rules-rust:dependency-trace-records-unsafe-and-prefers-std`, `rules-rust:cargo-audit-and-deny-on-every-pr`, `rules-rust:cargo-outdated-before-each-cycle`, `rules-rust:no-build-overrides-from-the-environment`
+- Swift: `rules-swift:package-resolved-is-versioned`
 
 ## Dynamic code and parsing of untrusted content
 
@@ -61,6 +64,8 @@ Applies as soon as the project parses a file or a stream supplied by a third par
 - `rules-untrusted-parsing:bounded-decompression`
 - `rules-untrusted-parsing:bounded-image-rendering`
 - Python: `rules-python:no-eval-exec-pickle-or-unsafe-yaml`, `rules-python:parse-xml-with-defusedxml`
+- Rust: `rules-rust:forbid-unsafe-code-in-every-crate`, `rules-rust:lifting-the-unsafe-ban-is-a-decision`
+- Swift: `rules-swift:check-system-api-return-codes`, `rules-swift:never-force-cast-a-system-value`
 
 ## Untrusted input
 
@@ -98,6 +103,8 @@ Applies as soon as the project parses a file or a stream supplied by a third par
 ## CI gates
 
 - `rules-security:ci-gates`
+- Rust: `rules-rust:rust-ci-gates`
+- Swift: `rules-swift:swift-test-in-ci`
 
 ## Resilience
 
