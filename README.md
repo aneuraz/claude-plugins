@@ -13,22 +13,22 @@ In the project's `.claude/settings.json`:
 ```json
 {
   "extraKnownMarketplaces": {
-    "aneuraz-plugins": {
+    "datazard-plugins": {
       "source": { "source": "github", "repo": "aneuraz/claude-plugins" }
     }
   },
   "enabledPlugins": {
-    "core@aneuraz-plugins": true
+    "core@datazard-plugins": true
   }
 }
 ```
 
-Add one `rules-<pack>@aneuraz-plugins` entry per rule pack the project wants.
+Add one `rules-<pack>@datazard-plugins` entry per rule pack the project wants.
 
 ## Auto-update
 
 Auto-update is off by default for a third-party marketplace. Each user turns it on once:
-run `/plugin`, open the Marketplaces tab, select `aneuraz-plugins` and enable auto-update.
+run `/plugin`, open the Marketplaces tab, select `datazard-plugins` and enable auto-update.
 
 ## Development
 

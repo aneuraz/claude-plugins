@@ -16,7 +16,7 @@ from typing import Final
 from claude_plugins_tools.wiki.model import split_front_matter
 
 RULES_GLOB: Final = "rules-*/skills/rules-*/rules/*.md"
-MARKETPLACE: Final = "aneuraz-plugins"
+MARKETPLACE: Final = "datazard-plugins"
 SETTINGS: Final = Path(".claude/settings.json")
 #: The repository's plugins/ when this module runs from src/claude_plugins_tools/.
 _CHECKOUT: Final = Path(__file__).resolve().parents[2] / "plugins"
@@ -85,7 +85,7 @@ def resolve(citation: str, packs: Mapping[str, Pack]) -> Rule:
 
 def enabled_packs(root: Path, packs: Mapping[str, Pack]) -> tuple[Mapping[str, Pack], str | None]:
     """The packs `<root>/.claude/settings.json` enables (`enabledPlugins`
-    `rules-<pack>@aneuraz-plugins: true`), and None; with no such entry, every pack and a note
+    `rules-<pack>@datazard-plugins: true`), and None; with no such entry, every pack and a note
     saying so."""
     file = Path(root) / SETTINGS
     try:

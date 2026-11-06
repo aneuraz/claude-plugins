@@ -9,7 +9,7 @@ try:
     import sys
     from pathlib import Path
 
-    MARKETPLACE_SUFFIX = "@aneuraz-plugins"
+    MARKETPLACE_SUFFIX = "@datazard-plugins"
     LIST_TIMEOUT_SECONDS = 5
     CONTEXT_CAP = 10_000
 

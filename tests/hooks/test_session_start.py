@@ -14,7 +14,7 @@ SCRIPT = PLUGIN / "hooks" / "session_start.py"
 BASE = (PLUGIN / "base.md").read_text(encoding="utf-8")
 STDIN = '{"source":"startup"}'
 CAP = 10_000
-MARKET = "@aneuraz-plugins"
+MARKET = "@datazard-plugins"
 
 
 def _load():

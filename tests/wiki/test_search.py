@@ -122,10 +122,10 @@ def test_search_covers_the_enabled_packs_only(
     _settings(
         tmp_path,
         {
-            "rules-python@aneuraz-plugins": True,
-            "rules-security@aneuraz-plugins": False,
+            "rules-python@datazard-plugins": True,
+            "rules-security@datazard-plugins": False,
             "rules-security@elsewhere": True,
-            "core@aneuraz-plugins": True,
+            "core@datazard-plugins": True,
         },
     )
     code, out, err = _run(capsys, "search", "e", "--root", str(tmp_path))
@@ -138,7 +138,7 @@ def test_search_covers_the_enabled_packs_only(
     assert "Bind every value" in out
 
 
-@pytest.mark.parametrize("enabled", [None, {"core@aneuraz-plugins": True}])
+@pytest.mark.parametrize("enabled", [None, {"core@datazard-plugins": True}])
 def test_search_without_enabled_packs_covers_every_pack(
     tmp_path: Path,
     packs: Path,
