@@ -9,13 +9,13 @@ The project's wiki is its memory: one page per lesson, rule, decision, debt, def
 
 ## Steps
 
-0. **Read `.claude/project.toml`.** `[wiki] path` is the wiki's directory; `[tooling] command` is how the project runs `cpt`. When `[wiki]` is absent, say the project has no wiki and go to step 3 (the packs only).
+0. **Read `.claude/project.toml`.** `[wiki] path` is the wiki's directory; `[tooling] command` is how the project runs `cpt`. When the file is absent, say the project is not configured; when `[wiki]` is absent, say the project has no wiki. In both cases skip steps 1 and 2 and go to step 3 (the packs only).
 1. **Read `<[wiki] path>/index.md`.** It lists every current page by type, then the glossary, the decisions and the raw sources (specs, fact-sets, plans, research). Done when you have picked every page whose title bears on the question.
 2. **Open those pages.** A hub's text frames a milestone or a family of rules and lists its pages. **Follow their links until the question is covered.** Done when each part of the question rests on a page you have read, or you have followed the index and the hubs around it and no page holds it.
-3. **Search.** Run the project's `cpt` command (`[tooling] command` in `.claude/project.toml`) with `wiki search <terms>`: it covers the project's wiki and the enabled packs. Open what it returns; `wiki show <citation>` prints a cited page or rule.
+3. **Search.** Run the project's `cpt` command (`[tooling] command` in `.claude/project.toml`) with `wiki search <terms>`: it covers the project's wiki and the enabled packs. Open what it returns; `wiki show <citation>` prints a cited page or rule. When the file or `[tooling] command` is absent, say the search is not configured, then invoke each enabled `rules-*` pack skill (its SKILL.md lists its rules) and read the rules that bear on the question.
 4. **Answer, citing the pages.** Each claim carries a relative link to its page, the page's title as the link text; in a code comment, `wiki:<directory>/<slug>`.
 
-Answer "no rule covers this" only after both the index and the search came back empty.
+Answer "no rule covers this" only after both the index and the search (or, where the search is not configured, the enabled packs' rules read directly) came back empty.
 
 ## A gap
 

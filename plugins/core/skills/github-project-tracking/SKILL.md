@@ -9,7 +9,7 @@ The project's tracking rule page (`[tracking] rule_page` in `.claude/project.tom
 
 ## Resolve the context first, never assume it
 
-This skill hard-codes no repository, no Project number and no identifier; only the Project's title comes from `[tracking] project` in `.claude/project.toml`. **Resolve them from the current repository** before any other step:
+This skill hard-codes no repository, no Project number and no identifier; only the Project's title comes from `[tracking] project` in `.claude/project.toml`. **Resolve them from the current repository** before any other step. First read `[tracking] project` from `.claude/project.toml` and set `PROJECT_TITLE` to it; if the file or the key is absent, leave it empty: the script lists the Projects and you stop to **ask which one**.
 
 ```bash
 OWNER_REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)   # e.g. owner/repo
@@ -17,9 +17,14 @@ OWNER=${OWNER_REPO%/*}; REPO=${OWNER_REPO#*/}
 
 # The Project's title is [tracking] project in .claude/project.toml; with no such key,
 # ask which Project (see below) rather than guessing
-PROJECT_TITLE=${PROJECT_TITLE:?set it from [tracking] project in .claude/project.toml}
-PROJECT=$(gh project list --owner "$OWNER" --format json \
-  --jq ".projects[] | select(.title==\"$PROJECT_TITLE\") | .number")
+PROJECT_TITLE=${PROJECT_TITLE:-}   # fill it from [tracking] project before running this
+if [ -z "$PROJECT_TITLE" ]; then
+  echo "No [tracking] project: pick one and ask the owner"
+  gh project list --owner "$OWNER"
+else
+  PROJECT=$(gh project list --owner "$OWNER" --format json \
+    --jq ".projects[] | select(.title==\"$PROJECT_TITLE\") | .number")
+fi
 
 echo "$OWNER_REPO — Project #$PROJECT"
 ```

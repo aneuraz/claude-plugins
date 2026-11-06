@@ -9,7 +9,7 @@ An ingest files what was learned into the project's wiki. The sources (specs, fa
 
 ## Steps
 
-0. **Read `.claude/project.toml`.** `[wiki] path` is the wiki's directory (`<wiki>` below); `[wiki] tooling` says whether `cpt` keeps the index (`"cpt"`) or you do (`"none"`); `[tooling] command` is how the project runs `cpt`. When `[wiki]` is absent, the project has no wiki: say so and stop.
+0. **Read `.claude/project.toml`.** `[wiki] path` is the wiki's directory (`<wiki>` below); `[wiki] tooling` says whether `cpt` keeps the index (`"cpt"`) or you do (`"none"`); `[tooling] command` is how the project runs `cpt`. When the file is absent, say the project is not configured and stop; when `[wiki]` is absent, the project has no wiki: say so and stop.
 1. **Find the touched pages through `<wiki>/index.md`.** Done when you have listed every page the new knowledge extends, contradicts or makes stale, and the hub each one belongs under.
 2. **Extend an existing page when the lesson is the same.** Add to its text or rewrite it. A page's slug, its file name, is permanent; its title is edited in place.
 3. **Write a new page when it is not**, at `<wiki>/<type directory>/<slug>.md`, with this front matter, and link it from its hub or a neighbouring page:
@@ -30,7 +30,7 @@ An ingest files what was learned into the project's wiki. The sources (specs, fa
 
    A source whose commit is not in this repository's history (`git cat-file -e <commit>` fails) is a commit of a sibling in `[repository] siblings`: its file is read at the URL `[repository] foreign_commit_url` gives, with `{repo}`, `{commit}` and `{path}` filled in, whichever sibling holds it. When the key is absent, name the commit's repository and path and say the URL is not configured.
 4. **Append one entry to `<wiki>/log.md`**, after the last one: a heading `## [YYYY-MM-DD] ingest | <what was ingested>`, a blank line, then one list item per page touched, a link whose text is the page's title, in the form the entries above it use.
-5. **Refresh and check the index.**
+5. **Refresh and check the index.** First check the keys: when `[wiki] tooling` is absent, or is `"cpt"` while `[tooling] command` is absent, say which key is missing, tell the owner, and stop before this step; do not guess.
    - With `tooling = "cpt"`: run the project's `cpt` command (`[tooling] command`) with `wiki index`, then with `wiki check`. Each fault names the file, the line and the rule; `wiki check --help` says what each rule refuses. Fix and rerun.
    - With `tooling = "none"`: update `<wiki>/index.md` by hand. Add each new page under its type's heading, in title order, a link whose text is the page's title; remove nothing, a superseded page stays listed. Then check that every relative link you wrote resolves to a file. Done when each new page appears in the index and has an inbound link from another page or is a hub.
 
