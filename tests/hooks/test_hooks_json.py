@@ -21,8 +21,14 @@ def _commands(event: str) -> list[tuple[str | None, str]]:
     ]
 
 
-def test_only_the_two_events() -> None:
-    assert set(HOOKS) == {"SessionStart", "PostToolUse"}
+def test_only_the_three_events() -> None:
+    assert set(HOOKS) == {"SessionStart", "SubagentStart", "PostToolUse"}
+
+
+def test_subagent_start_runs_subagent_start_py() -> None:
+    assert _commands("SubagentStart") == [
+        (None, 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/subagent_start.py"')
+    ]
 
 
 def test_session_start_runs_session_start_py() -> None:
