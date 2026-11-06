@@ -314,3 +314,5 @@ claude-plugins/
 ## Left for plan 2 (migration)
 
 Each project's `CLAUDE.md` line that stops a session without `core`'s base rules; retiring `humanizer` and turning off `anthropic-skills:unslop` in Claude Code; checking that user-level `enabledPlugins` cannot widen a project's declaration; `capture`'s `cargo test`/`swift test` counters and positional scope argument in `cpt facts`; regenerating each wiki index with the `cpt` wording; whether `scripts/qa/guard.py`'s confinement joins the package; every repository's `.claude/project.toml`, citations and CI.
+
+Owner's decision (2026-11-06): the generic halves of `candle`'s `documentation-chain` and `project-tracking` rule pages move to `core` in plan 2 — "four discoveries, four destinations" and "a decision is closed by a decision page" to the tracking skill (the future `plane-project-tracking`), the milestone's consistency review before the PR and the closing documentation task to `spec-to-facts` or a method skill; `candle` keeps only its own application.
