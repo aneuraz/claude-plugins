@@ -1,4 +1,4 @@
-"""Entry point of the `cpt` command: `facts` (and, with a later task, `wiki`)."""
+"""Entry point of the `cpt` command: `facts` and `wiki`."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import sys
 from collections.abc import Sequence
 
 from claude_plugins_tools.facts import check
+from claude_plugins_tools.wiki import cli as wiki
 
 USAGE = "usage: cpt {facts,wiki} ..."
 
@@ -17,6 +18,9 @@ def build_parser() -> argparse.ArgumentParser:
     facts = commands.add_parser("facts", help="audit and run the fact-sets")
     check.build_parser(facts)
     facts.set_defaults(handler=check.run)
+    wiki_parser = commands.add_parser("wiki", help="index, check and search the wiki and packs")
+    wiki.build_parser(wiki_parser)
+    wiki_parser.set_defaults(handler=wiki.run)
     return parser
 
 

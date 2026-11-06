@@ -41,4 +41,4 @@ select = ["E", "F", "I", "N", "UP", "B", "S", "A", "C4", "PT", "RET", "SIM", "AR
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers --import-mode=importlib"
-pythonpath = ["src"]
+pythonpath = ["src", "."]
