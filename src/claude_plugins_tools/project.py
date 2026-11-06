@@ -20,6 +20,8 @@ class IndexSection:
     title: str
     dir: str
     glob: str
+    #: "files": each file by its name; "headings": each file by its first `# ` heading.
+    kind: str = "files"
 
 
 @dataclass(frozen=True)
@@ -71,10 +73,16 @@ def _strs(value: object) -> bool:
     return isinstance(value, list) and all(isinstance(item, str) for item in value)
 
 
-def _tables(fields: tuple[str, ...]):
+def _tables(fields: tuple[str, ...], optional: dict[str, tuple[str, ...]] | None = None):
+    """A list of tables with exactly `fields`, plus the `optional` keys and their values."""
+    optional = optional or {}
+
     def check(value: object) -> bool:
         return isinstance(value, list) and all(
-            isinstance(item, dict) and set(item) == set(fields) and all(map(_str, item.values()))
+            isinstance(item, dict)
+            and set(fields) <= set(item) <= set(fields) | set(optional)
+            and all(map(_str, item.values()))
+            and all(item[key] in allowed for key, allowed in optional.items() if key in item)
             for item in value
         )
 
@@ -103,7 +111,7 @@ _SCHEMA: dict[str, dict[str, Any]] = {
         "tooling": _one_of("cpt", "none"),
         "archive_until": _is_date,
         "archive_named": _strs,
-        "index_sections": _tables(("title", "dir", "glob")),
+        "index_sections": _tables(("title", "dir", "glob"), {"kind": ("files", "headings")}),
     },
     "tracking": {"project": _str, "rule_page": _str},
     "qa": {

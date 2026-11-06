@@ -14,9 +14,6 @@ from claude_plugins_tools.wiki.pages import load_pages
 HEADER: Final = (
     "<!-- written by `uv run python -m scripts.wiki index`: edit the pages, not this file -->"
 )
-#: The section candle lists by first heading, linked from the wiki; the others by file name,
-#: linked through the repository root (candle's `_files`).
-ADR_DIR: Final = "docs/adr"
 _TITLES: Final[dict[PageType, str]] = {
     PageType.HUB: "Hubs",
     PageType.LESSON: "Lessons",
@@ -93,7 +90,8 @@ def _section(project: Project, section: IndexSection) -> list[str]:
     if not found:
         return []
     wiki = wiki_dir(project)
-    if section.dir == ADR_DIR:
+    # candle's layout: headings (its ADRs) link from the wiki, files through the root.
+    if section.kind == "headings":
         relative = posixpath.relpath(section.dir, wiki.as_posix())
         entries = [f"- [{_first_heading(f)}]({relative}/{f.name})" for f in found]
     else:

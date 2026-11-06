@@ -4,7 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from claude_plugins_tools.packs import load_packs
+from claude_plugins_tools.packs import enabled_packs, load_packs
 from claude_plugins_tools.project import Project, ProjectError, load_project
 from claude_plugins_tools.wiki.check import RULES, lint
 from claude_plugins_tools.wiki.errors import WikiError
@@ -31,7 +31,10 @@ def _check(project: Project, args: argparse.Namespace) -> int:
 def _search(project: Project, args: argparse.Namespace) -> int:
     if project.wiki_path is None:
         print("no [wiki] in .claude/project.toml: searching the packs only", file=sys.stderr)
-    hits = search(project, args.terms, load_packs())
+    packs, note = enabled_packs(project.root, load_packs())
+    if note:
+        print(note, file=sys.stderr)
+    hits = search(project, args.terms, packs)
     for hit in hits:
         print(hit)
     if not hits:

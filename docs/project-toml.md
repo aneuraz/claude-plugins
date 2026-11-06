@@ -21,7 +21,7 @@ Skills cite this schema by its keys (`[wiki] path`, `[qa] up`), not by this file
 | | `tooling` | `"cpt"` or `"none"` | `none`: the index is kept by hand |
 | | `archive_until` | date | files of dated documents up to this date are archived, optional |
 | | `archive_named` | list of strings | files archived by name, optional |
-| | `index_sections` | list of tables `{title, dir, glob}` | the source sections of the wiki index |
+| | `index_sections` | list of tables `{title, dir, glob, kind}` | the source sections of the wiki index; `kind` is optional: `"files"` (the default) lists each file by its name, `"headings"` by its first `# ` heading |
 | `[tracking]` | `project` | string | the tracking Project's title |
 | | `rule_page` | string | the project's tracking rule page, from the repository root |
 | `[qa]` | `up`, `down`, `status`, `guard` | string | command lines |
@@ -58,6 +58,7 @@ archive_named = ["tests/contracts/test_wiki.py", "tests/helpers/wiki.py"]
 title = "Architecture decisions"
 dir = "docs/adr"
 glob = "*.md"
+kind = "headings"
 
 [[wiki.index_sections]]
 title = "Specs"

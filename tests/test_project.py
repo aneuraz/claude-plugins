@@ -32,7 +32,10 @@ def test_reads_candle_example(tmp_path):
     assert project.wiki_tooling == "cpt"
     assert project.archive_until == date(2026, 10, 12)
     assert project.archive_named == ("tests/contracts/test_wiki.py", "tests/helpers/wiki.py")
-    assert project.index_sections[0] == IndexSection("Architecture decisions", "docs/adr", "*.md")
+    assert project.index_sections[0] == IndexSection(
+        "Architecture decisions", "docs/adr", "*.md", "headings"
+    )
+    assert project.index_sections[1].kind == "files"
     assert len(project.index_sections) == 5
     assert project.project == "candle"
     assert project.up == "uv run python -m scripts.qa_stack up"
@@ -65,4 +68,18 @@ def test_unknown_key_refused(tmp_path):
 def test_unknown_section_refused(tmp_path):
     write(tmp_path, "[nope]\na = 1\n")
     with pytest.raises(ProjectError, match="nope"):
+        load_project(tmp_path)
+
+
+def test_index_section_kind_defaults_to_files(tmp_path):
+    write(tmp_path, '[[wiki.index_sections]]\ntitle = "Plans"\ndir = "docs/plans"\nglob = "*.md"\n')
+    assert load_project(tmp_path).index_sections == (IndexSection("Plans", "docs/plans", "*.md"),)
+    assert load_project(tmp_path).index_sections[0].kind == "files"
+
+
+@pytest.mark.parametrize("extra", ['kind = "titles"', 'other = "x"'])
+def test_index_section_refuses_an_unknown_kind_or_key(tmp_path, extra):
+    section = '[[wiki.index_sections]]\ntitle = "P"\ndir = "d"\nglob = "*.md"\n'
+    write(tmp_path, section + extra + "\n")
+    with pytest.raises(ProjectError, match="index_sections"):
         load_project(tmp_path)

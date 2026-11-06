@@ -1,5 +1,6 @@
 """`cpt wiki search` and `cpt wiki show`: the project's wiki and the packs, by citation."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -107,3 +108,47 @@ def test_show_refuses_an_unknown_citation(
     code, out, err = _run(capsys, "show", citation, "--root", str(repo))
     assert (code, out) == (1, "")
     assert citation in err
+
+
+def _settings(root: Path, enabled: dict[str, bool]) -> None:
+    (root / ".claude").mkdir(parents=True, exist_ok=True)
+    text = json.dumps({"enabledPlugins": enabled})
+    (root / ".claude" / "settings.json").write_text(text, encoding="utf-8")
+
+
+def test_search_covers_the_enabled_packs_only(
+    tmp_path: Path, packs: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _settings(
+        tmp_path,
+        {
+            "rules-python@aneuraz-plugins": True,
+            "rules-security@aneuraz-plugins": False,
+            "rules-security@elsewhere": True,
+            "core@aneuraz-plugins": True,
+        },
+    )
+    code, out, err = _run(capsys, "search", "e", "--root", str(tmp_path))
+    assert code == 0
+    assert out.splitlines() == ["rules-python:no-eval  No eval"]
+    assert "every bundled pack" not in err
+    # show still resolves any bundled pack
+    code, out, _ = _run(capsys, "show", "rules-security:parameterised-sql", "--root", str(tmp_path))
+    assert code == 0
+    assert "Bind every value" in out
+
+
+@pytest.mark.parametrize("enabled", [None, {"core@aneuraz-plugins": True}])
+def test_search_without_enabled_packs_covers_every_pack(
+    tmp_path: Path,
+    packs: Path,
+    capsys: pytest.CaptureFixture[str],
+    enabled: dict[str, bool] | None,
+) -> None:
+    if enabled is not None:
+        _settings(tmp_path, enabled)
+    code, out, err = _run(capsys, "search", "sql", "--root", str(tmp_path))
+    assert code == 0
+    assert out.splitlines() == ["rules-security:parameterised-sql  Parameterised SQL"]
+    notes = [line for line in err.splitlines() if "every bundled pack" in line]
+    assert len(notes) == 1

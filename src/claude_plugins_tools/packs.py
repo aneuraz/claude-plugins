@@ -6,6 +6,7 @@ checkout (`uv run` installs the package editable, from `src/`), that directory d
 the repository's own `plugins/` is read instead.
 """
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from importlib import resources
@@ -15,6 +16,8 @@ from typing import Final
 from claude_plugins_tools.wiki.model import split_front_matter
 
 RULES_GLOB: Final = "rules-*/skills/rules-*/rules/*.md"
+MARKETPLACE: Final = "aneuraz-plugins"
+SETTINGS: Final = Path(".claude/settings.json")
 #: The repository's plugins/ when this module runs from src/claude_plugins_tools/.
 _CHECKOUT: Final = Path(__file__).resolve().parents[2] / "plugins"
 
@@ -78,3 +81,23 @@ def resolve(citation: str, packs: Mapping[str, Pack]) -> Rule:
             f"{citation} is superseded by {name}:{found.superseded_by}, which names no pack rule"
         )
     return successor
+
+
+def enabled_packs(root: Path, packs: Mapping[str, Pack]) -> tuple[Mapping[str, Pack], str | None]:
+    """The packs `<root>/.claude/settings.json` enables (`enabledPlugins`
+    `rules-<pack>@aneuraz-plugins: true`), and None; with no such entry, every pack and a note
+    saying so."""
+    file = Path(root) / SETTINGS
+    try:
+        settings = json.loads(file.read_text(encoding="utf-8")) if file.is_file() else {}
+        plugins = settings.get("enabledPlugins") or {}
+        entries = {
+            key.removesuffix(f"@{MARKETPLACE}"): value
+            for key, value in plugins.items()
+            if key.startswith("rules-") and key.endswith(f"@{MARKETPLACE}")
+        }
+    except OSError, ValueError, AttributeError:
+        entries = {}
+    if not entries:
+        return packs, f"no rules-*@{MARKETPLACE} in {SETTINGS}: searching every bundled pack"
+    return {name: pack for name, pack in packs.items() if entries.get(name) is True}, None

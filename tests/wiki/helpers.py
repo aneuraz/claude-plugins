@@ -24,6 +24,7 @@ tooling = "cpt"
 title = "Architecture decisions"
 dir = "docs/adr"
 glob = "*.md"
+kind = "headings"
 """
 
 
