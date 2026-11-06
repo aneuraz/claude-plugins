@@ -1,3 +1,9 @@
+# Run from the repository root:
+#   claude plugin eval plugins/core --trust-plugin --scaffold --threshold 0.8 --no-publish --allow-tools "Bash(.venv/bin/cpt:*)"
+# Without --allow-tools the Bash call is gated (allowed_tools alone is not enough)
+# and the case scores 0.
+# Prerequisites: uv, network access (the scaffold installs this repository into a
+# project-local .venv), and Python 3.14, which uv fetches.
 # The prompt.md + graders/ form has no way to name a scaffold script (only
 # case.yaml has context.scaffold_script), so this case is written as case.yaml.
 # scaffold.sh runs with the workspace as cwd and finds the repository from its own path.

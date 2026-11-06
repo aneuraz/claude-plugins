@@ -40,4 +40,6 @@ uv run ruff format --check
 claude plugin validate plugins/core
 ```
 
+The `core` plugin has an eval, `finds-a-pack-rule`; its command and prerequisites are in the header of `plugins/core/evals/finds-a-pack-rule/case.yaml`.
+
 Licensed under the MIT licence.
