@@ -9,7 +9,8 @@ from collections.abc import Sequence
 from claude_plugins_tools.facts import check
 from claude_plugins_tools.wiki import cli as wiki
 
-USAGE = "usage: cpt {facts,wiki} ..."
+#: argparse prefixes "usage: " itself.
+USAGE = "cpt {facts,wiki} ..."
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -28,7 +29,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     handler = getattr(args, "handler", None)
     if handler is None:
-        print(USAGE, file=sys.stderr)
+        print(f"usage: {USAGE}", file=sys.stderr)
         return 2
     return handler(args)
 

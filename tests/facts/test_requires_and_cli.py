@@ -153,3 +153,17 @@ def test_cpt_facts_refuses_a_malformed_project_toml(
     )
     assert cpt.main(["facts", "--orphans", "--root", str(tmp_path)]) == 1
     assert "facts.check_forms" in capsys.readouterr().err
+
+
+def test_cpt_help_says_usage_once(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as stopped:
+        cpt.main(["--help"])
+    assert stopped.value.code == 0
+    out = capsys.readouterr().out
+    assert out.startswith("usage: cpt {facts,wiki} ...\n")
+    assert "usage: usage:" not in out
+
+
+def test_cpt_without_a_command_prints_its_usage(capsys: pytest.CaptureFixture[str]) -> None:
+    assert cpt.main([]) == 2
+    assert capsys.readouterr().err == "usage: cpt {facts,wiki} ...\n"
