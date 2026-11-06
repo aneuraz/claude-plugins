@@ -81,7 +81,8 @@ def _index(project: Project) -> list[Fault]:
                 index.as_posix(),
                 1,
                 1,
-                "differs from what `index` writes: run `uv run python -m scripts.wiki index`",
+                "differs from what `index` writes: run `wiki index` with the project's cpt"
+                " command (`[tooling] command`)",
             )
         ]
     )

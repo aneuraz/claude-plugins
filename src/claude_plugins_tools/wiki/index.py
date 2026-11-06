@@ -10,9 +10,9 @@ from claude_plugins_tools.wiki.anchors import Anchors
 from claude_plugins_tools.wiki.model import PageType, Status, wiki_dir
 from claude_plugins_tools.wiki.pages import load_pages
 
-#: candle's wording, kept so its committed index still passes rule 1.
 HEADER: Final = (
-    "<!-- written by `uv run python -m scripts.wiki index`: edit the pages, not this file -->"
+    "<!-- written by `wiki index` with the project's cpt command (`[tooling] command`):"
+    " edit the pages, not this file -->"
 )
 _TITLES: Final[dict[PageType, str]] = {
     PageType.HUB: "Hubs",

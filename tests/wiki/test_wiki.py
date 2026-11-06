@@ -189,9 +189,19 @@ def test_a_stale_index_is_refused(tmp_path: Path) -> None:
     clean_wiki(tmp_path)
     _edit(tmp_path, "docs/wiki/index.md", "The first lesson", "A stale title")
     assert 1 in _rules(tmp_path)
-    assert any(
-        f.rule == 1 and "uv run python -m scripts.wiki index" in f.message for f in _check(tmp_path)
+    wording = "run `wiki index` with the project's cpt command (`[tooling] command`)"
+    assert any(f.rule == 1 and wording in f.message for f in _check(tmp_path))
+
+
+def test_the_index_header_names_the_project_s_cpt_command(tmp_path: Path) -> None:
+    clean_wiki(tmp_path)
+    lines = (tmp_path / "docs/wiki/index.md").read_text(encoding="utf-8").splitlines()
+    header = next(line for line in lines if line.startswith("<!--"))
+    assert header == (
+        "<!-- written by `wiki index` with the project's cpt command (`[tooling] command`):"
+        " edit the pages, not this file -->"
     )
+    assert "scripts.wiki" not in "\n".join(lines)
 
 
 def test_a_hand_kept_index_is_not_checked(tmp_path: Path) -> None:
