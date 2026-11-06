@@ -1,11 +1,13 @@
 """The packs the package carries: their rules, and how a `<pack>:<slug>` citation resolves."""
 
+import re
 from pathlib import Path
 
 import pytest
 
 from claude_plugins_tools import packs as packs_module
 from claude_plugins_tools.packs import Rule, UnknownCitation, load_packs, resolve
+from claude_plugins_tools.wiki.model import split_front_matter
 from tests.wiki.helpers import rule, write, write_pack
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -70,3 +72,36 @@ def test_bundled_packs_come_from_the_package_when_installed(
     write_pack(package, "rules-installed", {"a-rule": rule("A rule")})
     monkeypatch.setattr(packs_module.resources, "files", lambda _: package)
     assert list(load_packs()) == ["rules-installed"]
+
+
+CLASSIFICATION = ROOT / "docs" / "rule-classification.md"
+PROJECT_NAMES = ("candle", "capture", "fhirforge", "fouille", "korps")
+PACK_FILES = sorted((ROOT / "plugins").glob("rules-*/**/*.md"))
+
+
+def _classified_targets() -> list[str]:
+    lines = CLASSIFICATION.read_text(encoding="utf-8").splitlines()
+    rows = [line.strip("|").split("|") for line in lines if line.startswith("|")]
+    cells = [[cell.strip() for cell in row] for row in rows]
+    return [row[1] for row in cells[2:] if row[1].startswith("rules-")]
+
+
+def test_every_classified_rule_exists() -> None:
+    targets = _classified_targets()
+    assert targets
+    for target in targets:
+        pack, _, slug = target.partition(":")
+        file = ROOT / "plugins" / pack / "skills" / pack / "rules" / f"{slug}.md"
+        assert file.is_file(), f"{target}: no {file.relative_to(ROOT)}"
+        raw, _ = split_front_matter(file.read_text(encoding="utf-8"))
+        assert raw, f"{target}: no frontmatter"
+        assert raw.get("title"), f"{target}: no title in its frontmatter"
+
+
+@pytest.mark.parametrize("file", PACK_FILES, ids=[str(p.relative_to(ROOT)) for p in PACK_FILES])
+def test_no_project_link_in_packs(file: Path) -> None:
+    _, body = split_front_matter(file.read_text(encoding="utf-8"))
+    assert "../" not in body
+    assert "wiki:" not in body
+    for name in PROJECT_NAMES:
+        assert not re.search(rf"\b{name}\b", body, re.IGNORECASE), f"names the project {name}"

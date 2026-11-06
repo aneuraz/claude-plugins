@@ -1,0 +1,4 @@
+{
+  "name": "rules-untrusted-parsing",
+  "description": "Rules for parsing files supplied by third parties, cited by slug."
+}

@@ -18,6 +18,21 @@
       "name": "rules-typescript",
       "source": "./plugins/rules-typescript",
       "description": "TypeScript rules, cited by slug."
+    },
+    {
+      "name": "rules-security",
+      "source": "./plugins/rules-security",
+      "description": "Security rules that hold in any language, cited by slug."
+    },
+    {
+      "name": "rules-health-data",
+      "source": "./plugins/rules-health-data",
+      "description": "Rules for personal and health data, cited by slug."
+    },
+    {
+      "name": "rules-untrusted-parsing",
+      "source": "./plugins/rules-untrusted-parsing",
+      "description": "Rules for parsing files supplied by third parties, cited by slug."
     }
   ]
 }
