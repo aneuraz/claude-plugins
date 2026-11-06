@@ -1,11 +1,23 @@
 {
   "name": "aneuraz-plugins",
-  "owner": { "name": "aneuraz" },
+  "owner": {
+    "name": "aneuraz"
+  },
   "plugins": [
     {
       "name": "core",
       "source": "./plugins/core",
       "description": "Base rules, session hooks and workflow skills shared by every project."
+    },
+    {
+      "name": "rules-python",
+      "source": "./plugins/rules-python",
+      "description": "Python rules, cited by slug."
+    },
+    {
+      "name": "rules-typescript",
+      "source": "./plugins/rules-typescript",
+      "description": "TypeScript rules, cited by slug."
     }
   ]
 }
