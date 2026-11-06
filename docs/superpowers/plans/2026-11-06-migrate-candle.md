@@ -160,3 +160,19 @@
 
 - [ ] **Step 1:** In a scratch directory with a `.claude/settings.json` enabling only `core@datazard-plugins`: `claude plugin install rules-rust@datazard-plugins --scope user`, `claude plugin list --json`, then `claude plugin uninstall rules-rust@datazard-plugins --scope user`. Record whether user scope adds the pack to that project. If it does, add to `claude-plugins`'s root `README.md` "never install a `rules-*` pack at user scope", and to `core`'s `session_start.py` a line naming any `rules-*` pack enabled at user scope (tests first); commit and push (owner's confirmation). Plugins are not pinned, so `candle` needs no re-pin.
 - [ ] **Step 2:** Ask the owner to confirm moving `~/.claude/skills/humanizer` to `~/.claude/skills.retired/humanizer`, and to turn off `anthropic-skills:unslop` in `/skills` themselves.
+
+---
+
+## Added during execution
+
+### Task A6: Base rules reach subagents
+
+Measured in Task B4: `core`'s `SessionStart` context reaches the main session only; a subagent's context has no `# Base rules`, while before the migration subagents inherited `CLAUDE.md` §1–§3. The documented `SubagentStart` hook (`hookSpecificOutput.additionalContext`, 10,000-character cap, fires for built-in, project and plugin agents) closes the gap.
+
+**Files:** Create `plugins/core/hooks/subagent_start.py`; Modify `plugins/core/hooks/hooks.json`, `plugins/core/base.md` (section markers if needed); Test `tests/hooks/test_subagent_start.py`, `tests/hooks/test_hooks_json.py`
+
+- [ ] **Step 1: Write the failing tests:** emits JSON with `hookEventName == "SubagentStart"` and `additionalContext` = `base.md` without its independent-review section (a subagent never dispatches reviews; its controller does); silent on internal error; runs under Python 3.9; `hooks.json` pins the `SubagentStart` entry (no matcher, command path).
+- [ ] **Step 2: Run** them. Expected: FAIL.
+- [ ] **Step 3: Implement**, following `session_start.py`'s pattern (3.9, stdlib, one `try`, `except BaseException` silent). No pack check in subagents.
+- [ ] **Step 4: Real check:** `claude --plugin-dir ~/git/claude-plugins/plugins/core -p "Dispatch one general-purpose subagent with the prompt: 'Answer yes or no: does your context contain a section headed # Base rules? Then stop.' and report its answer verbatim."` → yes. Record it in the commit message.
+- [ ] **Step 5:** Commit `feat(core): base rules reach subagents`.
