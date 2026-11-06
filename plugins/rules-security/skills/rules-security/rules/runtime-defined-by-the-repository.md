@@ -7,6 +7,6 @@ sources:
 
 # The runtime environment MUST be entirely defined by the repository
 
-No undocumented environment variable needed at startup, and no search path patched from outside (in Python: no `PYTHONPATH`, no modified `sys.path`). Everything goes through packaging (in Python: `uv run`, entry points).
+No undocumented environment variable needed at startup, and no search path patched from outside the packaging. Everything goes through packaging (the package manager's run command, declared entry points).
 
 *Justification:* a scattered environment makes the build and the incident impossible to audit.

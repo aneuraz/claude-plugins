@@ -7,6 +7,6 @@ sources:
 
 # The project MUST NOT implement any cryptographic primitive
 
-Use an audited library (in Python, `cryptography`, and `hashlib` for digests). Hash secrets with a dedicated function (argon2/scrypt through an audited library) or salted HMAC-SHA-256, never a bare SHA-256 on a low-entropy secret.
+Use an audited library. Hash secrets with a dedicated function (argon2/scrypt through an audited library) or salted HMAC-SHA-256, never a bare SHA-256 on a low-entropy secret.
 
 *Justification:* crypto implementation errors cannot be detected by functional tests.

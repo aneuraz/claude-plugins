@@ -7,6 +7,6 @@ sources:
 
 # Every subprocess MUST be invoked without a shell
 
-Pass an argument list, never a shell string (in Python, `subprocess.run([...], shell=False)`), with a timeout; the subprocess SHOULD be isolated (throwaway working directory, bounded resources).
+Pass an argument list, never a command string a shell interprets, with a timeout; the subprocess SHOULD be isolated (throwaway working directory, bounded resources).
 
-*Justification:* `shell=True` on a file name supplied by a third party is command injection; a converter that loops without a timeout is a DoS.
+*Justification:* a shell run on a file name supplied by a third party is command injection; a converter that loops without a timeout is a DoS.

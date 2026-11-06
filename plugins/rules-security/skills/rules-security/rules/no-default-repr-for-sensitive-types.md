@@ -7,6 +7,6 @@ sources:
 
 # A type that carries sensitive data MUST NOT have a default representation
 
-A common base whose representation (in Python, `__repr__`/`__str__`) redacts the fields concerned; no `print()` and no f-string of a domain object in shipped code. Never a dataclass or a `BaseModel` with the default repr on a type that carries identifying data.
+A common base whose string representation redacts the fields concerned; no printing and no string interpolation of a domain object in shipped code.
 
-*Justification:* this is the most frequent and the least visible way data leaks. A default repr combined with a `logger.error("%s", job)` in a rare error path exports the record into the logs, often to an aggregator, sometimes outside the authorised perimeter.
+*Justification:* this is the most frequent and the least visible way data leaks. A default representation, combined with logging the object in a rare error path, exports the record into the logs, often to an aggregator, sometimes outside the authorised perimeter.

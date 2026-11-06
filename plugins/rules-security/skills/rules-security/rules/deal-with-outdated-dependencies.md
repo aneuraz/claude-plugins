@@ -7,6 +7,6 @@ sources:
 
 # Outdated dependencies MUST be dealt with before each development cycle
 
-Before each development cycle, list the outdated dependencies (with uv: `uv lock --upgrade --dry-run` or `uv tree --outdated`) and deal with each: an update, or keeping the version with a written justification.
+Before each development cycle, list the outdated dependencies with the package manager and deal with each: an update, or keeping the version with a written justification.
 
 *Justification:* a dependency frozen without justification becomes security debt (ANSSI MCO/MCS pillar: maintaining security condition).

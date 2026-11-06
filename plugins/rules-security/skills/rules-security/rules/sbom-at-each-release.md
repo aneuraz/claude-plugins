@@ -7,6 +7,6 @@ sources:
 
 # An SBOM MUST be produced at each release
 
-Produced from the lockfile (`cyclonedx-py` or equivalent from `uv.lock`) and kept with the artefact.
+Produced from the lockfile and kept with the artefact.
 
 *Justification:* makes it possible to answer "are we exposed to CVE-XXXX" in hours rather than days, which incident management expects.

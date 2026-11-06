@@ -7,6 +7,6 @@ sources:
 
 # Input schemas MUST refuse unknown fields
 
-In Pydantic: `model_config = ConfigDict(extra="forbid")`.
+An input schema rejects a payload that carries a field it does not declare, rather than ignoring the field.
 
 *Justification:* an unknown field accepted silently masks an integration error or an attempt to get around validation.

@@ -7,6 +7,6 @@ sources:
 
 # NEVER write a version from memory
 
-Let the package manager resolve it: `uv add <package>` (and `uv add "<package>[extra]"`) resolves the latest compatible version and updates the lock; `pnpm add` does the same for a Node project.
+When adding a dependency, let the package manager resolve the latest compatible version and update the lock; never type the version number.
 
 *Justification:* an agent's training data is out of date, and so is a number written by hand. **A plan or a brief does not exempt you from resolving**: versions frozen in a design document are as reliable as memory, that is, not at all. Resolve at implementation time and flag the gap rather than copying.

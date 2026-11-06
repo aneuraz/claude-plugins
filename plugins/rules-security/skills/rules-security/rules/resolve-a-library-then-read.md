@@ -7,6 +7,6 @@ sources:
 
 # Before using a library you do not know well, resolve it, then read
 
-Read the resolved version first (with uv: `uv pip show <package>`), then the documentation for **that version**.
+Read the resolved version from the package manager first, then the documentation for **that version**.
 
 *Justification:* an error after adding a dependency is solved with the CHANGELOG of the exact version, not by guessing the signature.

@@ -7,6 +7,6 @@ sources:
 
 # A code path reachable from the network MUST NOT let a raw exception escape
 
-A global handler turns everything into an opaque error + correlation_id (`rules-security:opaque-error-responses`); no `assert` for validation (Python removes it under `-O`); indexed access on incoming data goes through `.get()` or an explicit check.
+A global handler turns everything into an opaque error + correlation_id (`rules-security:opaque-error-responses`); validation never relies on a construct the runtime can strip; access to a key or an index of incoming data checks its presence explicitly.
 
 *Justification:* an unhandled exception in a handler is a denial of service and a leak channel (stack trace). It is a security incident, not an ergonomics defect.

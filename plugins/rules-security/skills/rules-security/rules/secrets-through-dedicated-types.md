@@ -7,6 +7,6 @@ sources:
 
 # Secrets MUST be handled through dedicated types
 
-Secrets are held in a dedicated type (`pydantic.SecretStr` for config) **and injected by the environment or a vault.** No secret in the code, the tests, the fixtures, the versioned config or the git history. An exposed secret is deemed compromised and MUST be revoked, not removed from the history.
+Secrets are held in a dedicated type that neutralises accidental display, **and injected by the environment or a vault.** No secret in the code, the tests, the fixtures, the versioned config or the git history. An exposed secret is deemed compromised and MUST be revoked, not removed from the history.
 
-*Justification:* `SecretStr` neutralises accidental display; rotation is the only effective remedy for exposure.
+*Justification:* a dedicated type neutralises accidental display; rotation is the only effective remedy for exposure.

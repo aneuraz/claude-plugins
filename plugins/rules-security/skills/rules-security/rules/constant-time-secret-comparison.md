@@ -7,4 +7,4 @@ sources:
 
 # Secret comparisons MUST be constant-time
 
-Secret comparisons MUST be constant-time (in Python, `secrets.compare_digest`), and generating randomness for security MUST use a cryptographic source (in Python, the `secrets` module): never `random`, never a timestamp as a seed.
+Secret comparisons MUST be constant-time, through the language's constant-time comparison, and generating randomness for security MUST use a cryptographically secure source: never a general-purpose pseudo-random generator, never a timestamp as a seed.

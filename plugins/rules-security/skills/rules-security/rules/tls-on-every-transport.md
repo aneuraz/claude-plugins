@@ -7,6 +7,6 @@ sources:
 
 # TLS MUST be required on every transport
 
-TLS is verified on outgoing calls too (no `verify=False`, ever).
+TLS is verified on outgoing calls too: certificate verification is never turned off, ever.
 
-*Justification:* a debugging `verify=False` that reaches production cancels the trust perimeter.
+*Justification:* a verification turned off for debugging that reaches production cancels the trust perimeter.

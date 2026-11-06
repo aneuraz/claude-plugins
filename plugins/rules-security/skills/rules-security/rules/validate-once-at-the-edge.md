@@ -7,6 +7,6 @@ sources:
 
 # Validation MUST happen at the edge, once, and produce a validated type
 
-The input models validate; the core of the code handles types that are already safe (`NewType`, frozen models) and does not validate again.
+The input models validate; the core of the code handles types that are already safe (distinct types for distinct meanings, immutable models) and does not validate again.
 
 *Justification:* the absence of validation deep in the code becomes impossible by construction, not by discipline. A core that validates again is a core whose boundary is in the wrong place.
