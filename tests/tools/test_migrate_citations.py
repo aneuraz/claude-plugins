@@ -175,3 +175,40 @@ def test_dry_run_changes_nothing(tmp_path, capsys):
     assert (repo / "src/a.py").read_text() == "# wiki:rules/x\n"
     assert (repo / "docs/wiki/rules/x.md").exists()
     assert "delete    docs/wiki/rules/x.md" in capsys.readouterr().out
+
+
+def test_code_fences_untouched_and_kept(table):
+    text = "```md\n[a](wiki/rules/x.md)\nwiki:rules/x\n```\nafter wiki:rules/x\n"
+    new, events = run(text, "docs/guide.md", table)
+    assert new == "```md\n[a](wiki/rules/x.md)\nwiki:rules/x\n```\nafter rules-security:x\n"
+    assert [(e.kind, e.line) for e in events] == [("kept", 3), ("kept", 2), ("rewrite", 5)] or {
+        (e.kind, e.line) for e in events
+    } == {("kept", 2), ("kept", 3), ("rewrite", 5)}
+    assert all(e.reason == "inside a code fence" for e in events if e.kind == "kept")
+
+
+def test_tilde_fence_and_unclosed(table):
+    text = "~~~\nwiki:rules/x\n~~~\n"
+    assert run(text, "docs/guide.md", table)[0] == text
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "[a [b] c](wiki/rules/x.md)",
+        "[a](<wiki/rules/x.md>)",
+        "[a](wiki/rules/x.md?plain=1)",
+        "[r]: wiki/rules/x.md",
+        "![img](wiki/rules/x.md)",
+    ],
+)
+def test_unhandled_link_forms_unmapped(table, line):
+    new, events = run(line + "\n", "docs/guide.md", table)
+    assert new == line + "\n"
+    assert [e.kind for e in events] == ["unmapped"]
+    assert events[0].reason == "link form not handled"
+
+
+def test_handled_link_not_double_reported(table):
+    _, events = run("[a](wiki/rules/x.md#frag)\n", "docs/guide.md", table)
+    assert [e.reason for e in events] == ["anchor on a moved page"]

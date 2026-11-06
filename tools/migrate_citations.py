@@ -30,7 +30,7 @@ RULES_DIR = "docs/wiki/rules"
 _SPLIT_CELL = 2
 _SLUG = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _CODE = re.compile(r"wiki:rules/([A-Za-z0-9_-]+)(#[\w-]+)?")
-_LINK = re.compile(r"\[([^\]]*)\]\(([^)\s]+)((?:\s+\"[^\"]*\")?)\)")
+_LINK = re.compile(r"(?<!!)\[([^\]]*)\]\(([^)\s]+)((?:\s+\"[^\"]*\")?)\)")
 _SCHEME = re.compile(r"^[a-z][a-z0-9+.-]*:")
 
 
@@ -72,6 +72,36 @@ def load_classification(path: Path, source: str) -> dict[str, Target]:
     return table
 
 
+_FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+_PATH = re.compile(r"[\w./-]+\.md")
+_LINKY = re.compile(r"(?:[(<]|\]:\s*)$")
+
+
+def _chunks(text: str) -> list[tuple[bool, int, str]]:
+    """Split Markdown into (fenced, first line number, text) runs."""
+    runs: list[tuple[bool, int, str]] = []
+    fence: str | None = None
+    for number, line in enumerate(text.splitlines(keepends=True), start=1):
+        marker = _FENCE.match(line)
+        if fence is None and marker:
+            fence, fenced = marker.group(1), True
+        elif (
+            fence is not None
+            and marker
+            and marker.group(1)[0] == fence[0]
+            and len(marker.group(1)) >= len(fence)
+            and not line.strip().strip(fence[0])
+        ):
+            fence, fenced = None, True
+        else:
+            fenced = fence is not None
+        if runs and runs[-1][0] == fenced:
+            runs[-1] = (fenced, runs[-1][1], runs[-1][2] + line)
+        else:
+            runs.append((fenced, number, line))
+    return runs
+
+
 def rewrite(
     text: str,
     file: Path,
@@ -81,6 +111,12 @@ def rewrite(
 ) -> tuple[str, list[Event]]:
     rel = file.relative_to(repo) if file.is_absolute() else file
     events: list[Event] = []
+
+    def rules_slug(path: str) -> str | None:
+        resolved = posixpath.normpath(posixpath.join(rel.parent.as_posix(), path))
+        if posixpath.dirname(resolved) != RULES_DIR:
+            return None
+        return posixpath.basename(resolved).removesuffix(".md")
 
     def decide(slug: str, anchor: str, old: str, new: str, line: int) -> str:
         target = table.get(slug)
@@ -96,33 +132,80 @@ def rewrite(
         events.append(Event("rewrite", rel, line, old, new))
         return new
 
-    def code(match: re.Match[str]) -> str:
-        slug, anchor = match.group(1), match.group(2) or ""
-        target = table.get(slug)
-        new = (target.pack_citation if target else None) or ""
-        line = text.count("\n", 0, match.start()) + 1
-        return decide(slug, anchor, match.group(0), new, line)
+    def chunk(part: str, first: int, fenced: bool) -> str:
+        def line_of(offset: int) -> int:
+            return first + part.count("\n", 0, offset)
 
-    result = _CODE.sub(code, text)
+        def code(match: re.Match[str]) -> str:
+            if fenced:
+                events.append(
+                    Event(
+                        "kept",
+                        rel,
+                        line_of(match.start()),
+                        match.group(0),
+                        None,
+                        "inside a code fence",
+                    )
+                )
+                return match.group(0)
+            slug, anchor = match.group(1), match.group(2) or ""
+            target = table.get(slug)
+            new = (target.pack_citation if target else None) or ""
+            return decide(slug, anchor, match.group(0), new, line_of(match.start()))
+
+        result = _CODE.sub(code, part)
+        if kind == "code":
+            return result
+        handled: list[tuple[int, int]] = []  # spans of `part` the link pass dealt with
+
+        # `result` and `part` differ only inside code citations, never in newlines.
+        def link(match: re.Match[str]) -> str:
+            label, destination = match.group(1), match.group(2)
+            path, _, fragment = destination.partition("#")
+            if not path.endswith(".md") or _SCHEME.match(path):
+                return match.group(0)
+            slug = rules_slug(path)
+            if slug is None:
+                return match.group(0)
+            handled.append(match.span())
+            line = first + result.count("\n", 0, match.start())
+            if fenced:
+                events.append(Event("kept", rel, line, match.group(0), None, "inside a code fence"))
+                return match.group(0)
+            target = table.get(slug)
+            new = f"{label} (`{target.pack_citation}`)" if target and target.pack_citation else ""
+            return decide(slug, fragment, match.group(0), new, line)
+
+        out = _LINK.sub(link, result)
+        if not fenced:
+            # Residual scan: a reference to a moved or unknown rule page that no pass handled.
+            for found in _PATH.finditer(result):
+                slug = rules_slug(found.group(0))
+                if (
+                    slug is None
+                    or not ("rules/" in found.group(0) or _LINKY.search(result[: found.start()]))
+                    or any(s <= found.start() < e for s, e in handled)
+                ):
+                    continue
+                target = table.get(slug)
+                if target is not None and not target.moved:
+                    continue
+                events.append(
+                    Event(
+                        "unmapped",
+                        rel,
+                        first + result.count("\n", 0, found.start()),
+                        found.group(0),
+                        None,
+                        "link form not handled",
+                    )
+                )
+        return out
+
     if kind == "code":
-        return result, events
-
-    # Newlines are untouched by the substitution above, so line numbers stay valid.
-    def link(match: re.Match[str]) -> str:
-        label, destination = match.group(1), match.group(2)
-        path, _, fragment = destination.partition("#")
-        if not path.endswith(".md") or _SCHEME.match(path):
-            return match.group(0)
-        resolved = posixpath.normpath(posixpath.join(rel.parent.as_posix(), path))
-        if posixpath.dirname(resolved) != RULES_DIR:
-            return match.group(0)
-        slug = posixpath.basename(resolved).removesuffix(".md")
-        target = table.get(slug)
-        new = f"{label} (`{target.pack_citation}`)" if target and target.pack_citation else ""
-        line = result.count("\n", 0, match.start()) + 1
-        return decide(slug, fragment, match.group(0), new, line)
-
-    return _LINK.sub(link, result), events
+        return chunk(text, 1, fenced=False), events
+    return "".join(chunk(part, first, fenced) for fenced, first, part in _chunks(text)), events
 
 
 def _format(event: Event) -> str:
