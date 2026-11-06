@@ -24,7 +24,7 @@ Every command below is read from `[qa]` in `.claude/project.toml`; the keys are 
 
 6. **Tear down.** Whatever happened before, run `[qa] down_respect_keep` when the run was started with `up_keep`, else `[qa] down`. It is safe after the subagent's own teardown. Done when it has exited; on a non-zero exit, show the owner its message.
 
-7. **Hand over.** Give the owner the path of the report and its **Summary** line, or say that the subagent ended without a report when it is missing. With `--keep`, add the `[qa] down` command line that stops the stack (with `--keep` honoured, that is the kept run's `down`). Done when the owner has the path or the absence.
+7. **Hand over.** Give the owner the path of the report and its **Summary** line, or say that the subagent ended without a report when it is missing. With `--keep`, add the command line that stops the stack: `[qa] down_respect_keep` for a kept run (started with `up_keep`), `[qa] down` otherwise. Done when the owner has the path or the absence.
 
 ## Notes
 
