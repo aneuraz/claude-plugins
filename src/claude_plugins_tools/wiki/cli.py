@@ -73,7 +73,9 @@ def build_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     )
     lint_parser.set_defaults(wiki=_check)
     found = commands.add_parser(
-        "search", parents=[common], help="list the wiki pages and pack rules matching every term"
+        "search",
+        parents=[common],
+        help="list the wiki pages and pack rules matching any term, most terms first",
     )
     found.add_argument("terms", nargs="+", metavar="TERM")
     found.set_defaults(wiki=_search)

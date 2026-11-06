@@ -152,3 +152,38 @@ def test_search_without_enabled_packs_covers_every_pack(
     assert out.splitlines() == ["rules-security:parameterised-sql  Parameterised SQL"]
     notes = [line for line in err.splitlines() if "every bundled pack" in line]
     assert len(notes) == 1
+
+
+def test_search_matches_any_term_ranked_by_terms_matched(
+    tmp_path: Path, packs: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # "sql injection" names no page in full: any term matching is a hit
+    code, out, _ = _run(capsys, "search", "sql", "injection", "--root", str(tmp_path))
+    assert code == 0
+    assert out.splitlines() == ["rules-security:parameterised-sql  Parameterised SQL"]
+    # two terms matched rank before one; a term counts once however often it occurs
+    code, out, _ = _run(capsys, "search", "eval", "never", "sql", "--root", str(tmp_path))
+    assert out.splitlines() == [
+        "rules-python:no-eval  No eval",  # eval, never
+        "rules-security:parameterised-sql  Parameterised SQL",  # never, sql
+    ]
+    code, out, _ = _run(capsys, "search", "sql", "bind", "input", "--root", str(tmp_path))
+    assert out.splitlines() == [
+        "rules-security:parameterised-sql  Parameterised SQL",  # sql, bind
+        "rules-python:no-eval  No eval",  # input
+    ]
+
+
+def test_search_ties_keep_citation_order(
+    tmp_path: Path, packs: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    clean_wiki(repo)
+    code, out, _ = _run(capsys, "search", "never", "always", "--root", str(repo))
+    assert code == 0
+    assert out.splitlines() == [
+        "wiki:rules/pin-every-version  Pin every version",  # always
+        "rules-python:no-eval  No eval",  # never
+        "rules-security:parameterised-sql  Parameterised SQL",  # never
+    ]

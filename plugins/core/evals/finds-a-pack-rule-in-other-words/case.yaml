@@ -1,0 +1,24 @@
+# Run from the repository root:
+#   claude plugin eval plugins/core --trust-plugin --scaffold --threshold 0.8 --no-publish --allow-tools "Bash(.venv/bin/cpt:*)"
+# Prerequisites and the reason for --allow-tools and for case.yaml: see the header of
+# ../finds-a-pack-rule/case.yaml. The scaffold is a copy of that case's.
+schema_version: "1.0"
+name: finds-a-pack-rule-in-other-words
+description: A question worded unlike the rule that settles it ("string-formatting a query" against "parameterised SQL") still finds the rule of an enabled pack.
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 15
+  allowed_tools: [Read, Glob, Grep, Skill, "Bash(.venv/bin/cpt:*)"]
+  prompt: |
+    Is string-formatting this SQL query OK? `cursor.execute(f"SELECT * FROM orders WHERE customer = '{name}'")`
+runs: 3
+graders:
+  - type: tool_used
+    name: uses-search
+    tool: Bash
+    input_match: "wiki search"
+  - type: regex
+    name: cites-rule
+    target: last_message
+    pattern: "rules-security:parameterised-sql"

@@ -21,28 +21,37 @@ class Hit:
         return f"{self.citation}  {self.title}"
 
 
-def _matches(terms: Sequence[str], title: str, body: str) -> bool:
+def _matched(terms: Sequence[str], title: str, body: str) -> int:
+    """How many distinct terms occur in the title or the body, ignoring case."""
     text = f"{title}\n{body}".casefold()
-    return all(term.casefold() in text for term in terms)
+    return sum(term in text for term in {term.casefold() for term in terms})
 
 
 def search(project: Project, terms: Sequence[str], packs: Mapping[str, Pack]) -> list[Hit]:
-    """Every wiki page (when `[wiki]` is set), then every live pack rule, matching all terms."""
-    hits: list[Hit] = []
+    """The wiki pages (when `[wiki]` is set) and live pack rules matching any term.
+
+    Ranked by the number of distinct terms matched; ties keep citation order: the wiki's
+    pages first, then the packs' rules by pack and slug.
+    """
+    scored: list[tuple[int, Hit]] = []
     if project.wiki_path is not None:
         for page in load_pages(project.root, wiki_dir(project)):
             path = PurePosixPath(page.path)
             title = str((page.raw or {}).get("title") or path.stem)
-            if _matches(terms, title, page.body):
-                hits.append(Hit(f"wiki:{path.parent.name}/{path.stem}", title))
+            scored.append(
+                (
+                    _matched(terms, title, page.body),
+                    Hit(f"wiki:{path.parent.name}/{path.stem}", title),
+                )
+            )
     for name, pack in sorted(packs.items()):
         for slug, rule in sorted(pack.rules.items()):
             if rule.superseded_by is not None:
                 continue
             _, body = split_front_matter(rule.path.read_text(encoding="utf-8"))
-            if _matches(terms, rule.title, body):
-                hits.append(Hit(f"{name}:{slug}", rule.title))
-    return hits
+            scored.append((_matched(terms, rule.title, body), Hit(f"{name}:{slug}", rule.title)))
+    ranked = sorted((item for item in scored if item[0]), key=lambda item: -item[0])
+    return [hit for _, hit in ranked]
 
 
 def show(project: Project, citation: str, packs: Mapping[str, Pack]) -> tuple[str, str | None]:
