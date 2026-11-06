@@ -7,6 +7,4 @@ sources:
 
 # `uv.lock` MUST be versioned and authoritative
 
-`uv` is the only manager: no manual `pip install`, no parallel `requirements.txt`.
-
-*Justification:* the lockfile freezes versions and hashes. A mismatch between the downloaded sources and the lock produces an error, and that is the detection we want. Without a versioned lock, every build starts over on TOFU (*trust on first use*) and a dependency substitution goes unnoticed.
+The Python realisation of `rules-security:lockfile-versioned-and-authoritative`, which holds the justification. `uv` is the only manager: commit `uv.lock`, install from it (`uv sync --locked`), no manual `pip install`, no parallel `requirements.txt`.

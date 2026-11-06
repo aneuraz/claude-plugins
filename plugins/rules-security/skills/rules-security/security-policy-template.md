@@ -4,7 +4,7 @@ sources:
   - https://github.com/aneuraz/candle/blob/275bce0/SECURITY.md
 ---
 
-The template of a project's `SECURITY.md`. Copy it to the repository root and replace the placeholders in angle brackets.
+The template of a project's `SECURITY.md`. Copy it to the repository root and replace the placeholders in angle brackets. The breach section cites `rules-health-data:data-breach-notification`, which holds the deadlines; drop the section in a project that holds no personal data.
 
 ```markdown
 # Security policy
@@ -21,9 +21,7 @@ Please include the affected version or commit, a description, steps to reproduce
 
 ## In case of a data breach
 
-A suspected breach involving personal data is reported to the CISO and the DPO immediately, not after investigation.
-
-The deadline for notifying the CNIL is 72 hours from the moment the breach becomes known (GDPR article 33). The duty to inform the people concerned applies as soon as the breach is likely to result in a high risk to their rights and freedoms. **This deadline runs during the investigation, not after it.**
+A suspected breach involving personal data follows `rules-health-data:data-breach-notification`: it is reported at once to <the CISO and the DPO, and how to reach them>.
 
 ## Code security rules
 
