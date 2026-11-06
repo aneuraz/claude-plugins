@@ -22,6 +22,7 @@ Skills cite this schema by its keys (`[wiki] path`, `[qa] up`), not by this file
 | | `archive_until` | date | files of dated documents up to this date are archived, optional |
 | | `archive_named` | list of strings | files archived by name, optional |
 | | `index_sections` | list of tables `{title, dir, glob, kind}` | the source sections of the wiki index; `kind` is optional: `"files"` (the default) lists each file by its name, `"headings"` by its first `# ` heading |
+| `[facts]` | `check_forms` | list of strings | the forms a pytest check of a fact may take: the check's tokens, its `file::function` selectors removed, must equal one form's, where a `*` token stands for any one token. Absent: `cpt facts` audits no check's form (its selectors still are) |
 | `[tracking]` | `project` | string | the tracking Project's title |
 | | `rule_page` | string | the project's tracking rule page, from the repository root |
 | `[qa]` | `up`, `down`, `status`, `guard` | string | command lines |
@@ -35,7 +36,9 @@ Skills cite this schema by its keys (`[wiki] path`, `[qa] up`), not by this file
 ## Example
 
 The values of `aneuraz/candle`. `candle` has no value for `up_keep`, `down_respect_keep` or
-`errors_dir` (its QA stack has no kept run and no error directory), so they are omitted.
+`errors_dir` (its QA stack has no kept run and no error directory), so they are omitted. Its
+`check_forms` are its two check forms (with and without `-m integration`), each run from the workspace
+(`--all-packages`) or from one member (`--package *`).
 
 ```toml
 [repository]
@@ -79,6 +82,14 @@ glob = "*.md"
 title = "Research"
 dir = "docs/research"
 glob = "*.md"
+
+[facts]
+check_forms = [
+  "uv run --all-packages --exact pytest -v",
+  "uv run --all-packages --exact pytest -m integration -v",
+  "uv run --package * --exact pytest -v",
+  "uv run --package * --exact pytest -m integration -v",
+]
 
 [tracking]
 project = "candle"

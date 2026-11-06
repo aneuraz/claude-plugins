@@ -27,6 +27,9 @@ pass. Given, it also audits that each fact's `-m` markers equal its `requires`.
 
 --root DIR is the project root (default: the current directory); fact-sets are
 read from DIR/docs/superpowers/specs and every selector resolves under DIR.
+
+`[facts] check_forms` in DIR/.claude/project.toml lists the forms a pytest check
+may take; absent, no check's form is audited (its selectors still are).
 """
 
 import argparse
@@ -40,6 +43,8 @@ from pathlib import Path
 from typing import NamedTuple
 
 import yaml
+
+from claude_plugins_tools.project import ProjectError, load_project
 
 SPEC_SUBDIR = Path("docs") / "superpowers" / "specs"
 DEFAULT_VITEST_ROOT = "agent"
@@ -156,24 +161,28 @@ def _agent_selector_fault(
     return None if count == 1 else f"{fact_id} names {count} tests in {where}"
 
 
-def _form_fault(check: str) -> str | None:
-    """Why this pytest check leaves its form, or None.
+def _form_fault(check: str, forms: Sequence[str]) -> str | None:
+    """Why this pytest check leaves every one of `forms`, or None.
 
     The gate reads only a check's selectors, so any other token (a -k, a -p,
     a shell operator) would make the command differ from what the reports
-    prove (spec §6). Which member a --package names is not checked.
+    prove. A check is in a form when its tokens, its selectors removed, are
+    the form's tokens, where a `*` token stands for any one token (the member
+    a `--package` names, say).
     """
     rest = [token for token in shlex.split(check) if not SELECTOR_PATTERN.fullmatch(token)]
-    match rest:
-        case ["uv", "run", "--all-packages", *tail] | ["uv", "run", "--package", _, *tail]:
-            pass
-        case _:
-            tail = []
-    form = (["--exact", "pytest", "-v"], ["--exact", "pytest", "-m", "integration", "-v"])
-    return None if tail in form else f"a token outside the check's form in {check!r}"
+    for form in map(shlex.split, forms):
+        if len(form) == len(rest) and all(f in ("*", t) for f, t in zip(form, rest, strict=True)):
+            return None
+    return f"a token outside the check's form in {check!r}"
 
 
-def selector_fault(check: str, root: Path, vitest_root: str = DEFAULT_VITEST_ROOT) -> str | None:
+def selector_fault(
+    check: str,
+    root: Path,
+    vitest_root: str = DEFAULT_VITEST_ROOT,
+    forms: Sequence[str] | None = None,
+) -> str | None:
     """Why this check's selector cannot be trusted, or None.
 
     A selector must name exactly one definition. Two functions of the same
@@ -195,13 +204,14 @@ def selector_fault(check: str, root: Path, vitest_root: str = DEFAULT_VITEST_ROO
     agent_match = AGENT_SELECTOR_PATTERN.search(check)
     if agent_match:
         return _agent_selector_fault(agent_match, root, vitest_root)
-    return _python_selector_fault(check, root)
+    return _python_selector_fault(check, root, forms)
 
 
-def _python_selector_fault(check: str, root: Path) -> str | None:
-    """Why this file::function check cannot be trusted, or None."""
-    if runner_of(check) == "pytest":
-        form = _form_fault(check)
+def _python_selector_fault(check: str, root: Path, forms: Sequence[str] | None) -> str | None:
+    """Why this file::function check cannot be trusted, or None; a pytest check
+    must also take one of `forms` when they are given (`[facts] check_forms`)."""
+    if forms is not None and runner_of(check) == "pytest":
+        form = _form_fault(check, forms)
         if form is not None:
             return form
     matches = list(SELECTOR_PATTERN.finditer(check))
@@ -297,6 +307,7 @@ def _process_fact(  # noqa: PLR0911, PLR0913 — one return per skip rule, one k
     root: Path,
     vitest_root: str = DEFAULT_VITEST_ROOT,
     excluded: frozenset[str] = frozenset(),
+    forms: Sequence[str] | None = None,
 ) -> Verdict:
     """Audit one fact, then judge it: from `reports` when given, else by
     running its check if selected. `excluded` (local mode only) lists, without
@@ -311,7 +322,7 @@ def _process_fact(  # noqa: PLR0911, PLR0913 — one return per skip rule, one k
     # armed exactly where it is cheapest to spot. A @draft fact is exempt:
     # its test is not written yet by definition.
     if fact["status"] != "@draft":
-        faults = [selector_fault(fact["check"], root, vitest_root)]
+        faults = [selector_fault(fact["check"], root, vitest_root, forms)]
         if excluded and reports is None:
             faults.append(requires_fault(fact))
         fault = next((fault for fault in faults if fault is not None), None)
@@ -398,6 +409,11 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0912 — one pass, one bra
     root = args.root.resolve()
     excluded = frozenset(name for name in args.exclude_requires.split(",") if name)
     try:
+        forms = load_project(root).check_forms
+    except ProjectError as error:
+        print(f"✗ {error}", file=sys.stderr)
+        return 1
+    try:
         reports = _reports_of(args.reports)
     except DuplicateReportError as error:
         print(f"✗ two reports for job {error.job}")
@@ -431,6 +447,7 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0912 — one pass, one bra
                 root=root,
                 vitest_root=args.vitest_root,
                 excluded=excluded,
+                forms=forms,
             )
             if verdict.orphan is not None:
                 orphans.append(verdict.orphan)

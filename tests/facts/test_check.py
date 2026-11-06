@@ -494,6 +494,15 @@ def test_without_reports_each_check_runs_verbatim(
     assert ran == [IMPLEMENTED_CHECK, SPEC_CHECK]
 
 
+#: candle's forms, as docs/project-toml.md's example lists them under `[facts] check_forms`.
+CANDLE_FORMS = (
+    "uv run --all-packages --exact pytest -v",
+    "uv run --all-packages --exact pytest -m integration -v",
+    "uv run --package * --exact pytest -v",
+    "uv run --package * --exact pytest -m integration -v",
+)
+
+
 def _two_tests(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     test = tmp_path / "tests" / "t.py"
     test.parent.mkdir()
@@ -512,7 +521,7 @@ def test_a_check_in_the_form_is_no_fault(
     check: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _two_tests(tmp_path, monkeypatch)
-    assert facts_check.selector_fault(check, tmp_path) is None
+    assert facts_check.selector_fault(check, tmp_path, forms=CANDLE_FORMS) is None
 
 
 def test_a_check_outside_the_form_is_a_fault(
@@ -532,12 +541,35 @@ def test_a_check_outside_the_form_is_a_fault(
     ):
         check = f"uv run --all-packages --exact pytest tests/t.py::a -v {extra}"
         assert (
-            facts_check.selector_fault(check, tmp_path)
+            facts_check.selector_fault(check, tmp_path, forms=CANDLE_FORMS)
             == f"a token outside the check's form in {check!r}"
         )
+    outside = "uv run --exact pytest tests/t.py::a -v"
+    assert facts_check.selector_fault(outside, tmp_path, forms=CANDLE_FORMS) is not None
+
+
+def test_without_forms_no_form_is_audited(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _two_tests(tmp_path, monkeypatch)
+    check = "uv run --all-packages --exact pytest tests/t.py::a -v -k x"
+    assert facts_check.selector_fault(check, tmp_path) is None
+    # the selector audit still runs
+    missing = "uv run --all-packages --exact pytest tests/t.py::nowhere -v"
     assert (
-        facts_check.selector_fault("uv run --exact pytest tests/t.py::a -v", tmp_path) is not None
+        facts_check.selector_fault(missing, tmp_path) == "nowhere is defined 0 times in tests/t.py"
     )
+
+
+def test_a_configured_form_other_than_candle_s(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _two_tests(tmp_path, monkeypatch)
+    forms = ("python -m pytest -q",)
+    assert (
+        facts_check.selector_fault("python -m pytest tests/t.py::a -q", tmp_path, forms=forms)
+        is None
+    )
+    candle = "uv run --all-packages --exact pytest tests/t.py::a -v"
+    assert facts_check.selector_fault(candle, tmp_path, forms=forms) is not None
 
 
 def test_two_reports_for_one_job_fail_the_gate(

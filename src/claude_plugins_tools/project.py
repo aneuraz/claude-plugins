@@ -48,6 +48,9 @@ class Project:
     archive_until: date | None = None
     archive_named: tuple[str, ...] = ()
     index_sections: tuple[IndexSection, ...] = ()
+    # [facts]
+    #: The forms a pytest check may take, its selectors removed; None: no form audit.
+    check_forms: tuple[str, ...] | None = None
     # [tracking]
     project: str | None = None
     rule_page: str | None = None
@@ -113,6 +116,7 @@ _SCHEMA: dict[str, dict[str, Any]] = {
         "archive_named": _strs,
         "index_sections": _tables(("title", "dir", "glob"), {"kind": ("files", "headings")}),
     },
+    "facts": {"check_forms": _strs},
     "tracking": {"project": _str, "rule_page": _str},
     "qa": {
         "up": _str,

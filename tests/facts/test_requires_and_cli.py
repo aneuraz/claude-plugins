@@ -125,3 +125,31 @@ def test_cpt_dispatches_facts_and_rejects_the_rest(
     with pytest.raises(SystemExit) as exit_info:
         cpt.main(["wiki"])
     assert exit_info.value.code == 2
+
+
+def test_cpt_facts_audits_the_forms_of_project_toml(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    outside = "uv run --all-packages --exact pytest tests/t.py::a -v -k x"
+    _project(tmp_path, [_fact("AAA-001", outside)])
+    # no .claude/project.toml: no form audit
+    assert cpt.main(["facts", "--orphans", "--root", str(tmp_path)]) == 0
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "project.toml").write_text(
+        '[facts]\ncheck_forms = ["uv run --all-packages --exact pytest -v"]\n', encoding="utf-8"
+    )
+    capsys.readouterr()
+    assert cpt.main(["facts", "--orphans", "--root", str(tmp_path)]) == 1
+    assert "a token outside the check's form" in capsys.readouterr().out
+
+
+def test_cpt_facts_refuses_a_malformed_project_toml(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _project(tmp_path, [_fact("AAA-001", PLAIN)])
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "project.toml").write_text(
+        '[facts]\ncheck_forms = "uv run pytest"\n', encoding="utf-8"
+    )
+    assert cpt.main(["facts", "--orphans", "--root", str(tmp_path)]) == 1
+    assert "facts.check_forms" in capsys.readouterr().err

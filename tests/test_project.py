@@ -49,7 +49,20 @@ def test_reads_candle_example(tmp_path):
     assert project.up_keep is None
     assert project.errors_dir is None
     assert "scripts/qa_stack.py" in project.tooling_paths
+    assert project.check_forms == (
+        "uv run --all-packages --exact pytest -v",
+        "uv run --all-packages --exact pytest -m integration -v",
+        "uv run --package * --exact pytest -v",
+        "uv run --package * --exact pytest -m integration -v",
+    )
     assert project.root == tmp_path
+
+
+def test_check_forms_absent_or_refused(tmp_path):
+    assert load_project(tmp_path).check_forms is None
+    write(tmp_path, '[facts]\ncheck_forms = "uv run pytest -v"\n')
+    with pytest.raises(ProjectError, match=r"facts\.check_forms"):
+        load_project(tmp_path)
 
 
 def test_malformed_names_key(tmp_path):

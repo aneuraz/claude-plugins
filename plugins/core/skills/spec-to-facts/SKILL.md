@@ -59,7 +59,7 @@ Save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-facts.md`, sibling of the des
 
 Rules:
 - `check` is **a command that runs this fact's test alone; exit code 0 is the truth condition**, and it names its test. Never a subjective criterion. Use the same command format as writing-plans verification steps (`Run:` / `Expected:`) so plans can embed it verbatim.
-- `check` gets **one fixed form per project** (the runner, its environment flags, the selector syntax, verbosity), and the gate refuses any other token: a flag outside the form (a test filter, a plugin switch, a shell operator) would make the command differ from what the reports prove. The selector syntax is the language's: for pytest see `rules-python:pytest-check-selector`.
+- `check` takes **one of the project's fixed forms** (the runner, its environment flags, the selector syntax, verbosity), listed in `[facts] check_forms` of `.claude/project.toml`; the gate refuses a pytest check in none of them: a flag outside the form (a test filter, a plugin switch, a shell operator) would make the command differ from what the reports prove. When `[facts] check_forms` is absent, say the forms are not configured and that the gate audits none. The selector syntax is the language's: for pytest see `rules-python:pytest-check-selector`.
 - Lifecycle: `@draft` (invariant identified, no test yet) → `@spec` (test written, expected to fail until implemented; that is TDD) → `@implemented` (check green in CI) → `@superseded` (the invariant was replaced or dropped by a later design; the fact stays for history and the gate skips it).
 - `source` covers only the fact→spec direction; the spec→fact direction is Step 2b. One without the other is half a contract.
 - One fact = one assertion. No "and". Split.
