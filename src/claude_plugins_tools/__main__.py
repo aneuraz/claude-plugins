@@ -1,15 +1,32 @@
-"""Entry point of the `cpt` command (subcommands arrive with later tasks)."""
+"""Entry point of the `cpt` command: `facts` (and, with a later task, `wiki`)."""
 
 from __future__ import annotations
 
+import argparse
 import sys
+from collections.abc import Sequence
 
-USAGE = "usage: cpt {facts,wiki} ...\n(not implemented yet)"
+from claude_plugins_tools.facts import check
+
+USAGE = "usage: cpt {facts,wiki} ..."
 
 
-def main() -> int:
-    print(USAGE, file=sys.stderr)
-    return 2
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="cpt", usage=USAGE)
+    commands = parser.add_subparsers(dest="command")
+    facts = commands.add_parser("facts", help="audit and run the fact-sets")
+    check.build_parser(facts)
+    facts.set_defaults(handler=check.run)
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    handler = getattr(args, "handler", None)
+    if handler is None:
+        print(USAGE, file=sys.stderr)
+        return 2
+    return handler(args)
 
 
 if __name__ == "__main__":
