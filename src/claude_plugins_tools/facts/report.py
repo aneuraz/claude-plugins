@@ -8,7 +8,7 @@ Every call report counts: the ``subtests`` fixture logs one per subtest under th
 parent's node id.
 
 In CI the option travels in ``PYTEST_ADDOPTS``, so a test that spawns pytest without
-this plugin must strip that variable (as FGT-011's test does).
+this plugin must strip that variable from the child's environment.
 """
 
 import json

@@ -1,4 +1,4 @@
-"""GitHub's heading anchors (design §3): what `#anchor` links and sources point at."""
+"""GitHub's heading anchors: what `#anchor` links and sources point at."""
 
 import re
 

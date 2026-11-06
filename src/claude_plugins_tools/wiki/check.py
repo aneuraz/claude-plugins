@@ -1,4 +1,4 @@
-"""The lint (design 2026-10-12-wiki §5.2): rules 1 to 5, 7 and 10, one fault per breach.
+"""The lint: rules 1 to 5, 7 and 10, one fault per breach.
 
 Rules 6, 8 and 9 checked candle's doctrine migration, which is complete; they are retired
 and keep their numbers unused, so a fault message means what it meant in candle. Rule 5 also
@@ -32,7 +32,7 @@ from claude_plugins_tools.wiki.pages import Page, internal_links, load_pages
 
 _NESTED: Final = re.compile(r"\[[^\[\]\n]*\[[^\]\n]*\]\([^)\s]*\)[^\]\n]*\]\(")
 
-#: What each rule refuses, by its number (design §5.2); `check --help` prints them.
+#: What each rule refuses, by its number; `check --help` prints them.
 RULES: Final = {
     1: "index.md differs from what `index` writes (not checked when [wiki] tooling is none)",
     2: "a front matter breaks the page schema, or a page sits outside its type's directory",

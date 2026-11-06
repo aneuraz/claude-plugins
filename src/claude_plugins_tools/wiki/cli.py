@@ -1,4 +1,4 @@
-"""`cpt wiki index|check|search|show` (design §5): the options and the dispatch."""
+"""`cpt wiki index|check|search|show`: the options and the dispatch."""
 
 import argparse
 import sys

@@ -1,4 +1,4 @@
-"""The generated index (design §5.1): the wiki's pages, the glossary, `[wiki] index_sections`."""
+"""The generated index: the wiki's pages, the glossary, `[wiki] index_sections`."""
 
 import posixpath
 import re
@@ -90,7 +90,8 @@ def _section(project: Project, section: IndexSection) -> list[str]:
     if not found:
         return []
     wiki = wiki_dir(project)
-    # candle's layout: headings (its ADRs) link from the wiki, files through the root.
+    # The two link forms of the committed indexes: a headings section links relative to the
+    # wiki's directory, a files section through the repository root.
     if section.kind == "headings":
         relative = posixpath.relpath(section.dir, wiki.as_posix())
         entries = [f"- [{_first_heading(f)}]({relative}/{f.name})" for f in found]

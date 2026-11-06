@@ -1,4 +1,4 @@
-"""Pages, their types and their front matter (design §3)."""
+"""Pages, their types and their front matter."""
 
 import re
 from dataclasses import dataclass, field

@@ -1,7 +1,8 @@
 """The citations the lint reads: `wiki:` and `<pack>:<slug>` citations, and issue references.
 
-Issue references follow `[repository]`: `name`'s issue and pull URLs, `<name's repo>#N` and
-bare `#N` are rewritten into `issue_repository` and its `issue_reference` form (design §4).
+Issue references follow `[repository]` (docs/project-toml.md): `name`'s issue and pull URLs,
+`<name's repo>#N` and bare `#N` are rewritten into `issue_repository` and its
+`issue_reference` form.
 """
 
 import re

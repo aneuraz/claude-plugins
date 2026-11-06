@@ -17,7 +17,7 @@ check fails is a claim the repository no longer honours.
 A @superseded fact is never run: it names, in superseded_by, the @implemented
 fact or facts that bind in its place.
 
---reports DIR is CI's gate (spec §3): it runs no check, and holds a fact green
+--reports DIR is CI's gate: it runs no check, and holds a fact green
 when every test its check names passed in the test jobs' reports under DIR.
 Without it, each check runs verbatim, one process each: the local mode.
 
@@ -55,8 +55,8 @@ AGENT_SELECTOR_PATTERN = re.compile(
     r"pnpm -C agent exec (?:vitest run|playwright test) (\S+\.ts) -[tg] \"([A-Z]{2,4}-\d{3})\""
 )
 RUNNERS = ("pytest", "vitest", "playwright")
-# The bare gate stays local: Playwright needs the e2e stack (Postgres, a
-# built agent, browsers), so it runs only when named explicitly.
+# The bare gate stays local: Playwright needs an end-to-end stack (services,
+# a built front end, browsers), so it runs only when named explicitly.
 LOCAL_RUNNERS = ("pytest", "vitest")
 NOT_RUN = "not run"
 SKIPPED = "skipped"
@@ -188,13 +188,12 @@ def selector_fault(
     A selector must name exactly one definition. Two functions of the same
     name in one file make pytest report "collected 1 item" and run the second
     one, so a check can execute a test other than the one it names and still
-    report green — the CLI-004 case, which only ruff F811 revealed. Running
-    the check cannot catch this, since it is the wrong test that passes.
+    report green; ruff's F811 is what reveals it. Running the check cannot
+    catch this, since it is the wrong test that passes.
 
-    Every selector of the check, not the first: SRC-010 and CLI-020 each name
-    two, and validating only the first left an emptied redefinition of the
-    second — the test holding the exemption complement's safety property — with
-    the fact still printing green (wiki:debts/facts-check-reads-first-selector-only).
+    Every selector of the check, not the first: a check may name several tests,
+    and validating only the first would leave an emptied redefinition of a later
+    one with the fact still printing green.
 
     A check whose runner is not one of RUNNERS is a fault on its own: nothing
     downstream would ever select it to run, so a typo here is silent forever.
