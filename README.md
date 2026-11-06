@@ -13,22 +13,22 @@ In the project's `.claude/settings.json`:
 ```json
 {
   "extraKnownMarketplaces": {
-    "claude-plugins": {
+    "aneuraz-plugins": {
       "source": { "source": "github", "repo": "aneuraz/claude-plugins" }
     }
   },
   "enabledPlugins": {
-    "core@claude-plugins": true
+    "core@aneuraz-plugins": true
   }
 }
 ```
 
-Add one `rules-<pack>@claude-plugins` entry per rule pack the project wants.
+Add one `rules-<pack>@aneuraz-plugins` entry per rule pack the project wants.
 
 ## Auto-update
 
 Auto-update is off by default for a third-party marketplace. Each user turns it on once:
-run `/plugin`, open the Marketplaces tab, select `claude-plugins` and enable auto-update.
+run `/plugin`, open the Marketplaces tab, select `aneuraz-plugins` and enable auto-update.
 
 ## Development
 
