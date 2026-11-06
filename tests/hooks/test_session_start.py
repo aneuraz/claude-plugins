@@ -94,6 +94,20 @@ def test_lister_unavailable(tmp_path):
     assert _context(out).startswith(BASE)
 
 
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {"id": ["x"], "enabled": True, "scope": "user"},
+        {"id": "x" + MARKET, "enabled": True, "scope": "project", "projectPath": 5},
+    ],
+)
+def test_malformed_entry_keeps_base_md(tmp_path, entry):
+    project = _project(tmp_path, ["rules-python"])
+    out = _load().main(STDIN, _env(project), lambda _project: [entry])
+    assert _context(out).startswith(BASE)
+    assert "not loaded" not in _context(out)
+
+
 def test_context_stays_under_cap(tmp_path):
     packs = [f"rules-p{i}" for i in range(7)]
     project = _project(tmp_path, packs)

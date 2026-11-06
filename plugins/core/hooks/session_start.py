@@ -62,10 +62,11 @@ try:
             return ""
         if not declared:
             return ""
-        entries = list_plugins(project)
-        if entries is None:
+        try:
+            loaded = loaded_ids(list_plugins(project), project)
+        except Exception:  # includes entries is None
             return ""
-        missing = [pack for pack in declared if pack not in loaded_ids(entries, project)]
+        missing = [pack for pack in declared if pack not in loaded]
         if not missing:
             return ""
         return (
