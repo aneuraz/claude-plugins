@@ -25,9 +25,10 @@ Skills cite this schema by its keys (`[wiki] path`, `[qa] up`), not by this file
 | `[tracking]` | `project` | string | the tracking Project's title |
 | | `rule_page` | string | the project's tracking rule page, from the repository root |
 | `[qa]` | `up`, `down`, `status`, `guard` | string | command lines |
-| | `up_keep`, `down_respect_keep` | string | the `up` and `down` command lines when the run is kept, optional |
+| | `up_keep`, `down_respect_keep` | string | the `up` and `down` command lines when the run is kept, optional; `--keep` is honoured only when both are set |
 | | `variables` | list of strings | environment variables the run needs, checked by name, never printed |
 | | `surfaces` | list of tables `{name, command, description}` | the test surfaces handed to the agent |
+| | `work_dir` | string | the run's work directory, where the agent writes and the report lands; required when `[qa]` is used |
 | | `errors_dir` | string | directory of stack-error files for the Monitor, optional |
 | | `tooling_paths` | list of strings | paths whose change by the branch stops the run to ask |
 
@@ -87,6 +88,7 @@ up = "uv run python -m scripts.qa_stack up"
 down = "uv run python -m scripts.qa_stack down"
 status = "uv run python -m scripts.qa_stack status"
 guard = "uv run --frozen --no-sync python -m scripts.qa_stack guard"
+work_dir = ".qa/current/work"
 variables = ["CANDLE_QA_CONFIG"]
 tooling_paths = [
   "scripts/qa",

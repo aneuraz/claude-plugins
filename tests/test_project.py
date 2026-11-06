@@ -42,6 +42,7 @@ def test_reads_candle_example(tmp_path):
         "uv run python -m scripts.qa_stack cli <candle command>",
         "candle as the agent identity",
     )
+    assert project.work_dir == ".qa/current/work"
     assert project.up_keep is None
     assert project.errors_dir is None
     assert "scripts/qa_stack.py" in project.tooling_paths

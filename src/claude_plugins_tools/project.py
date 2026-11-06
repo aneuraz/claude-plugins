@@ -58,6 +58,7 @@ class Project:
     down_respect_keep: str | None = None
     variables: tuple[str, ...] = ()
     surfaces: tuple[Surface, ...] = ()
+    work_dir: str | None = None
     errors_dir: str | None = None
     tooling_paths: tuple[str, ...] = ()
 
@@ -114,6 +115,7 @@ _SCHEMA: dict[str, dict[str, Any]] = {
         "down_respect_keep": _str,
         "variables": _strs,
         "surfaces": _tables(("name", "command", "description")),
+        "work_dir": _str,
         "errors_dir": _str,
         "tooling_paths": _strs,
     },
