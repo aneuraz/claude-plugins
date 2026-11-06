@@ -1,11 +1,11 @@
 ---
 name: updating-the-wiki
-description: "Wiki ingest: use when a milestone's documentation task starts, a debt is accepted, a decision or defect is closed, a rule changes, or a reading of the wiki finds a lesson it lacks."
+description: "Wiki ingest: use when a milestone's documentation task starts, a debt is accepted, a decision or defect is closed, a rule changes or is learned (one that holds beyond this project is proposed for a rule pack), or a reading of the wiki finds a lesson it lacks."
 ---
 
 # Updating the wiki
 
-An ingest files what was learned into the project's wiki. The sources (specs, fact-sets, plans, reviews, the code) stay as they are, and the pages cite them. A page states one lesson, rule, decision, debt, defect, reference or how-to.
+An ingest files what was learned into the project's wiki. The sources (specs, fact-sets, plans, reviews, the code) stay as they are, and the pages cite them. A page states one lesson, rule, decision, debt, defect, reference or how-to. A rule that holds beyond this project belongs to a rule pack (`rules-*`), not to the wiki; the wiki holds how this project applies it.
 
 ## Steps
 
@@ -25,6 +25,8 @@ An ingest files what was learned into the project's wiki. The sources (specs, fa
    issues: [<N>]       # debt, defect, decision: their issue numbers
    ---
    ```
+
+   **Before writing a `type: rule` page**, run the project's `cpt` command (`[tooling] command`) with `wiki search <terms>`, several words for the principle. When a pack rule holds the principle, the page holds only this project's application of it and cites the rule as `<pack>:<slug>` (`rules-security:parameterised-sql`), restating none of it. When the rule would hold in any project and no pack has it, propose it to the owner for a pack instead of writing it into the wiki. When `[tooling] command` is absent, say the search is not configured and read the enabled `rules-*` pack skills' rule titles instead.
 
    Issue references in the text take the form `[repository] issue_reference` gives, with `{n}` the number (it names `[repository] issue_repository`). When `issue_reference` is absent, write `#N` for this repository and `owner/repo#N` for another. A page merged into another keeps its file, with `status: superseded` and `superseded_by: <wiki>/<type directory>/<slug>.md`, the path from the repository root of the page that holds it now.
 

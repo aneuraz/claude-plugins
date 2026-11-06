@@ -14,7 +14,7 @@ The project's wiki is its memory: one page per lesson, rule, decision, debt, def
 2. **Open those pages.** A hub's text frames a milestone or a family of rules and lists its pages. **Follow their links until the question is covered.** Done when each part of the question rests on a page you have read, or you have followed the index and the hubs around it and no page holds it.
 3. **Search.** Run the project's `cpt` command (`[tooling] command` in `.claude/project.toml`) with `wiki search <terms>`: it covers the project's wiki and the enabled packs, lists every page or rule matching any of the terms, and ranks first those matching the most. Give several words, synonyms included: a rule's wording may not be the question's. Open what it returns; `wiki show <citation>` prints a cited page or rule. When the file or `[tooling] command` is absent, say the search is not configured.
 4. **Read the packs' rule titles.** Invoke each enabled `rules-*` pack skill (its SKILL.md lists its rules' titles), even when the search ran, and open the rules whose title bears on the question: a title can name the question in words the search did not try.
-5. **Answer, citing the pages.** Each claim carries a relative link to its page, the page's title as the link text; in a code comment, `wiki:<directory>/<slug>`.
+5. **Answer, citing the pages.** Each claim carries a relative link to its page, the page's title as the link text; in a code comment, `wiki:<directory>/<slug>`. A pack rule is cited as `<pack>:<slug>` (`rules-security:parameterised-sql`), in prose and in code alike: its file lives in the plugin, not in the project.
 
 Answer "no rule covers this" only after the index, the search (where configured) and the enabled packs' rule titles all came back empty.
 
@@ -24,4 +24,4 @@ When no page covers part of the question, say which part. Read the raw sources t
 
 ## Done when
 
-Every claim in the answer cites a page or is marked as absent from the wiki.
+Every claim in the answer cites a page or a pack rule, or is marked as absent from the wiki.
