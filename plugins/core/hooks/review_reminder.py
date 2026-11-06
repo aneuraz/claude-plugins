@@ -12,7 +12,11 @@ try:
 
     _PLAN = (
         "Independent review: have a fresh agent review the plan, handed only the plan file "
-        "and never your conclusions, before executing it."
+        "and the spec it implements, never your conclusions, before executing it."
+    )
+    _TASKS_DONE = (
+        "Independent review: once all of the plan's tasks are done, have a fresh agent review "
+        "the branch's diff, handed only the diff and never your conclusions."
     )
     _DIFF = (
         "Independent review: before finishing, have a fresh agent review the branch's diff, "
@@ -25,8 +29,8 @@ try:
             "handed only the spec file and never your conclusions."
         ),
         PREFIX + "writing-plans": _PLAN,
-        PREFIX + "subagent-driven-development": _DIFF,
-        PREFIX + "executing-plans": _DIFF,
+        PREFIX + "subagent-driven-development": _TASKS_DONE,
+        PREFIX + "executing-plans": _TASKS_DONE,
         PREFIX + "finishing-a-development-branch": _DIFF,
     }
 

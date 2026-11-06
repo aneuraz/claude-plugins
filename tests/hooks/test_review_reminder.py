@@ -37,8 +37,20 @@ def _context(output: str) -> str:
 def test_reminds_after_writing_plans():
     text = _context(_load().main(_stdin("superpowers:writing-plans")))
     assert "independent review" in text.lower()
-    assert "plan" in text
+    assert "the plan file and the spec it implements" in text
     assert "fresh agent" in text
+
+
+@pytest.mark.parametrize("skill", ["subagent-driven-development", "executing-plans"])
+def test_the_diff_review_is_due_once_the_tasks_are_done(skill):
+    text = _context(_load().main(_stdin(f"superpowers:{skill}")))
+    assert "once all of the plan's tasks are done" in text
+    assert "before finishing" not in text
+
+
+def test_the_diff_review_is_due_before_finishing():
+    text = _context(_load().main(_stdin("superpowers:finishing-a-development-branch")))
+    assert "before finishing" in text
 
 
 @pytest.mark.parametrize(
