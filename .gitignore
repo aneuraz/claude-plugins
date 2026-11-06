@@ -1,1 +1,7 @@
 .superpowers/
+__pycache__/
+.venv/
+dist/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/

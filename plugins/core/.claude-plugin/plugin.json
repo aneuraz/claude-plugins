@@ -1,0 +1,4 @@
+{
+  "name": "core",
+  "description": "Base rules, session hooks and workflow skills shared by every project."
+}
