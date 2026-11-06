@@ -1,0 +1,23 @@
+# The prompt.md + graders/ form has no way to name a scaffold script (only
+# case.yaml has context.scaffold_script), so this case is written as case.yaml.
+# scaffold.sh runs with the workspace as cwd and finds the repository from its own path.
+schema_version: "1.0"
+name: finds-a-pack-rule
+description: A question the project's own wiki does not answer is settled by a rule of an enabled pack, found through the wiki search.
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 15
+  allowed_tools: [Read, Glob, Grep, Skill, "Bash(.venv/bin/cpt:*)"]
+  prompt: |
+    May I load this YAML file with `yaml.load`? It comes from a user upload.
+runs: 3
+graders:
+  - type: tool_used
+    name: uses-search
+    tool: Bash
+    input_match: "wiki search"
+  - type: regex
+    name: cites-rule
+    target: last_message
+    pattern: "rules-python:no-eval-exec-pickle-or-unsafe-yaml"
