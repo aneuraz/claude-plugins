@@ -10,8 +10,12 @@ A report is a JSON object `{test_id: outcome}`, one file per test job, written w
 
 `facts` (through the project's `cpt` command) parses `docs/superpowers/specs/*-facts.md` and exits non-zero on any red fact **or on any orphan fact** (id absent from its sibling design doc, Step 2b).
 
-- `facts --orphans`: traceability only, no reports needed (extraction time, pre-commit, every push). `--implemented` restricts the listing to `@implemented` facts.
-- `facts --reports DIR`: reads the JSON files under DIR, one per job, and runs no check. A fact that is not `@draft` or `@superseded` is green when every test its `check` names appears in a report and every appearance is `passed`. Otherwise it is red, with a reason: `not run` (in no report), `skipped`, `failed`, or the other outcome. Two reports with the same file name (one job reported twice) fail the gate. A missing or empty DIR makes every fact `not run`. `--runner LIST` names the selector syntaxes the `check` commands may use; `--exclude-requires LIST` leaves out facts that need a named capability the job does not have; `--root DIR` sets the repository root the spec directory is resolved from.
+- `facts --orphans`: traceability only, no reports needed (extraction time, pre-commit, every push). `--implemented` does not affect it.
+- `facts --reports DIR`: reads the JSON files under DIR, one per job, and runs no check. A fact that is not `@draft` or `@superseded` is green when every test its `check` names appears in a report and every appearance is `passed`. Otherwise it is red, with a reason: `not run` (in no report), `skipped`, `failed`, or the other outcome. Two reports with the same file name (one job reported twice) fail the gate. A missing or empty DIR makes every fact `not run`.
+- `--implemented`: the local run and `--reports` consider only `@implemented` facts (the gate at a milestone boundary).
+- `--runner LIST`: comma list of runners whose checks the local run executes (`pytest`, `vitest`, `playwright`; default `pytest,vitest`). No effect with `--reports`.
+- `--exclude-requires LIST`: local run only. Facts whose `requires:` names a listed resource are not run and are printed as not run with their requirement (never silent). When given, each fact's `-m` markers must equal its `requires`.
+- `--root DIR`: the repository root the spec directory is resolved from.
 - Without `--orphans` or `--reports`: runs each non-`@draft` check verbatim, one process each, for local use.
 
 A bare selector (a test without a case) stands for the test and each of its parametrised cases. A `check` with no selector the reports can hold is `not run`.

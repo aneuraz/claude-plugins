@@ -54,6 +54,7 @@ Save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-facts.md`, sibling of the des
   check: "<runner command naming the test, e.g. tests/contracts/test_auth.py::test_expired_jwt_returns_401>"
   source: "2026-08-31-auth-refresh-design.md §Token lifecycle"
   owner: backend
+  requires: []             # optional: resource names the check needs (e.g. a database); see facts --exclude-requires
 ```
 
 Rules:
