@@ -1,6 +1,6 @@
 # claude-plugins: one source for the skills, agents and rules shared across projects
 
-Date: 2026-11-06. Status: draft, awaiting the owner's approval.
+Date: 2026-11-06. Status: approved by the owner, revised after an independent review.
 
 ## Why
 
@@ -33,7 +33,7 @@ The `CLAUDE.md` files show the same pattern: the five recent English ones share 
 
 - Replacing `github-project-tracking` with a Plane-based skill. That is the next project (`plane-project-tracking`, and a wider rework of how GitHub issues and Plane work items relate, given that the two can sync both ways). This design only leaves room for it in `core`.
 - Rewriting the content of the skills beyond what the split requires.
-- Distributing the plugins outside the owner's repositories.
+- Supporting users other than the owner. The repository is public, but nothing is designed for outside users.
 
 ## Anti-goals
 
@@ -56,7 +56,7 @@ The `CLAUDE.md` files show the same pattern: the five recent English ones share 
 
 ### Repository and plugins
 
-The repository `aneuraz/claude-plugins` (private) is the marketplace: `.claude-plugin/marketplace.json` at its root, one directory per plugin under `plugins/`, each referenced by a relative path.
+The repository `aneuraz/claude-plugins` (public) is the marketplace: `.claude-plugin/marketplace.json` at its root, one directory per plugin under `plugins/`, each referenced by a relative path.
 
 ```
 claude-plugins/
@@ -173,11 +173,11 @@ The package is a direct dependency of each Python project, and so takes its trac
 
 Claude Code sessions run from the owner's terminal; none runs in GitHub Actions yet (claude-code-action would need read access to this repository, a workspace trusted ahead of a `-p` run, and a check of how it loads a project's plugins).
 
-**CI does run in GitHub Actions**, on GitHub-hosted runners, in seven of the nine repositories (`candle`, `candle-app`, `candle-legacy`, `candle-pseudo`, `candle-qa`, `capture`, `fhirforge`), and it calls the scripts the package replaces. Once a project's `uv.lock` holds a git dependency on this repository, every job's `uv sync --locked` must be able to fetch it from the first migration on. See *Open question*.
+**CI does run in GitHub Actions**, on GitHub-hosted runners, in seven of the nine repositories (`candle`, `candle-app`, `candle-legacy`, `candle-pseudo`, `candle-qa`, `capture`, `fhirforge`), and it calls the scripts the package replaces. Once a project's `uv.lock` holds a git dependency on this repository, every job's `uv sync --locked` must be able to fetch it from the first migration on. See *How CI reaches this repository*.
 
-## Open question for the owner
+## How CI reaches this repository
 
-**How CI reaches this repository.** Either the repository is public (nothing to configure; its content is skills, rules and tooling, no secrets), or it stays private and each migrated repository's CI gets read access (a deploy key or a fine-grained token stored as a secret, and a git credential step before `uv sync`).
+The repository is **public** (owner's decision, 2026-11-06): its content is skills, rules and tooling, with no secret. CI fetches the package with no credential, and the marketplace needs no git credential helper.
 
 ## Left to the builder
 
