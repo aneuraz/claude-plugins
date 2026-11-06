@@ -36,7 +36,10 @@ _NESTED: Final = re.compile(r"\[[^\[\]\n]*\[[^\]\n]*\]\([^)\s]*\)[^\]\n]*\]\(")
 RULES: Final = {
     1: "index.md differs from what `index` writes (not checked when [wiki] tooling is none)",
     2: "a front matter breaks the page schema, or a page sits outside its type's directory",
-    3: "an internal link of the wiki does not resolve to a file",
+    3: (
+        "an internal link of the wiki does not resolve to a file "
+        "(links on log.md lines identical to a line of the --base log are not checked)"
+    ),
     4: "a page other than a hub has no inbound link from another page",
     5: "a wiki: citation names no page, or a <pack>:<slug> citation no pack rule",
     7: "a page holds an issue reference not in [repository] issue_reference's form",
@@ -106,12 +109,26 @@ def _front_matter(root: Path, pages: list[Page]) -> list[Fault]:
     return faults
 
 
-def _links(root: Path, wiki: Path) -> list[Fault]:
+def _base_log(project: Project, base: str) -> list[str] | None:
+    """The lines of the log on `base`, or None when the base or its log cannot be read."""
+    try:
+        return git(project.root, "show", f"{base}:{log_path(project).as_posix()}").splitlines()
+    except WikiError:
+        return None
+
+
+def _links(project: Project, base: str | None) -> list[Fault]:
+    root, wiki = project.root, wiki_dir(project)
+    log = log_path(project).as_posix()
+    history = set(_base_log(project, base) or []) if base is not None else set()
     faults: list[Fault] = []
     for file in sorted((root / wiki).rglob("*.md")):
         path = file.relative_to(root).as_posix()
         text = file.read_text(encoding="utf-8")
+        lines = text.splitlines()
         for line, target in internal_links(path, text):
+            if path == log and lines[line - 1] in history:
+                continue
             if not (root / target).exists():
                 faults.append(Fault(path, line, 3, f"links to {target}, which does not exist"))
         for match in _NESTED.finditer(text):
@@ -209,7 +226,7 @@ def lint(
     """The faults and the notices; `packs` defaults to the packs the package carries."""
     root, wiki = project.root, wiki_dir(project)
     pages = load_pages(root, wiki)
-    faults = _index(project) + _front_matter(root, pages) + _links(root, wiki) + _orphans(pages)
+    faults = _index(project) + _front_matter(root, pages) + _links(project, base) + _orphans(pages)
     cited, notices = _citations(project, pages, load_packs() if packs is None else packs)
     faults += cited + _issues(project, pages)
     if base is not None:

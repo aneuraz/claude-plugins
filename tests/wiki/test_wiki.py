@@ -305,6 +305,25 @@ def test_a_rewritten_log_line_is_refused(tmp_path: Path) -> None:
     assert 10 in _rules(tmp_path, base)
 
 
+def test_log_link_to_a_removed_page_on_base_is_not_a_fault(tmp_path: Path) -> None:
+    clean_wiki(tmp_path)
+    log = tmp_path / "docs/wiki/log.md"
+    log.write_text(log.read_text(encoding="utf-8") + "- [old](lessons/gone.md)\n", encoding="utf-8")
+    base = fixture_commit(tmp_path)
+    assert 3 in _rules(tmp_path)
+    assert 3 in _rules(tmp_path, "no-such-ref")
+    assert 3 not in _rules(tmp_path, base)
+
+
+def test_new_log_link_to_a_missing_page_is_a_fault(tmp_path: Path) -> None:
+    clean_wiki(tmp_path)
+    base = fixture_commit(tmp_path)
+    log = tmp_path / "docs/wiki/log.md"
+    log.write_text(log.read_text(encoding="utf-8") + "- [new](lessons/gone.md)\n", encoding="utf-8")
+    fixture_commit(tmp_path)
+    assert 3 in _rules(tmp_path, base)
+
+
 def test_the_log_rule_is_skipped_without_a_base(tmp_path: Path) -> None:
     clean_wiki(tmp_path)
     _edit(tmp_path, "docs/wiki/log.md", "migrate", "rewritten")
