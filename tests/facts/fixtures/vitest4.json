@@ -1,0 +1,51 @@
+{
+ "success": false,
+ "testResults": [
+  {
+   "name": "/repo/app/src/math.test.ts",
+   "status": "failed",
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "math",
+      "add"
+     ],
+     "fullName": "math add ZZZ-001 adds",
+     "status": "passed",
+     "title": "ZZZ-001 adds"
+    },
+    {
+     "ancestorTitles": [
+      "math",
+      "add"
+     ],
+     "fullName": "math add ZZZ-002 fails",
+     "status": "failed",
+     "title": "ZZZ-002 fails"
+    },
+    {
+     "ancestorTitles": [
+      "math"
+     ],
+     "fullName": "math ZZZ-003 skipped",
+     "status": "skipped",
+     "title": "ZZZ-003 skipped"
+    },
+    {
+     "ancestorTitles": [
+      "math"
+     ],
+     "fullName": "math ZZZ-004 todo",
+     "status": "todo",
+     "title": "ZZZ-004 todo"
+    },
+    {
+     "ancestorTitles": [],
+     "fullName": "top level",
+     "status": "passed",
+     "title": "top level"
+    }
+   ]
+  }
+ ]
+}

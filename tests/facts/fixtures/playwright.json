@@ -1,0 +1,84 @@
+{
+ "suites": [
+  {
+   "title": "a.spec.ts",
+   "file": "a.spec.ts",
+   "specs": [
+    {
+     "title": "ZZZ-013 flaky",
+     "ok": true,
+     "file": "a.spec.ts",
+     "tests": [
+      {
+       "projectName": "",
+       "status": "flaky",
+       "expectedStatus": "passed"
+      }
+     ]
+    }
+   ],
+   "suites": [
+    {
+     "title": "group",
+     "file": "a.spec.ts",
+     "specs": [
+      {
+       "title": "ZZZ-010 passes",
+       "ok": true,
+       "file": "a.spec.ts",
+       "tests": [
+        {
+         "projectName": "",
+         "status": "expected",
+         "expectedStatus": "passed"
+        }
+       ]
+      },
+      {
+       "title": "ZZZ-011 fails",
+       "ok": false,
+       "file": "a.spec.ts",
+       "tests": [
+        {
+         "projectName": "",
+         "status": "unexpected",
+         "expectedStatus": "passed"
+        }
+       ]
+      },
+      {
+       "title": "ZZZ-012 skipped",
+       "ok": true,
+       "file": "a.spec.ts",
+       "tests": [
+        {
+         "projectName": "",
+         "status": "skipped",
+         "expectedStatus": "skipped"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "sub/b.spec.ts",
+   "file": "sub/b.spec.ts",
+   "specs": [
+    {
+     "title": "ZZZ-014 in subdir",
+     "ok": true,
+     "file": "sub/b.spec.ts",
+     "tests": [
+      {
+       "projectName": "",
+       "status": "expected",
+       "expectedStatus": "passed"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

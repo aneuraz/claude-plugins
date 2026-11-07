@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="nextest-run" tests="3" skipped="0" failures="1" errors="0" uuid="2f9f316c-6882-4bc3-bd5f-0606060cf01d" timestamp="2026-11-07T12:13:24.890+01:00" time="0.011">
+    <testsuite name="demo" tests="2" skipped="0" errors="0" failures="1">
+        <testcase name="tests::adds" classname="demo" timestamp="2026-11-07T12:13:24.891+01:00" time="0.010"/>
+        <testcase name="tests::fails" classname="demo" timestamp="2026-11-07T12:13:24.891+01:00" time="0.010">
+            <failure message="thread &apos;tests::fails&apos; panicked at crates/demo/src/lib.rs:8:18" type="test failure with exit code 101">thread &apos;tests::fails&apos; panicked at crates/demo/src/lib.rs:8:18:
+assertion `left == right` failed
+  left: 2
+ right: 3
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace</failure>
+            </testcase>
+    </testsuite>
+    <testsuite name="demo::api" tests="1" skipped="0" errors="0" failures="0">
+        <testcase name="works" classname="demo::api" timestamp="2026-11-07T12:13:24.891+01:00" time="0.010"/>
+    </testsuite>
+</testsuites>
