@@ -24,6 +24,7 @@ Skills cite this schema by its keys (`[wiki] path`, `[qa] up`), not by this file
 | | `index_sections` | list of tables `{title, dir, glob, kind}` | the source sections of the wiki index; `kind` is optional: `"files"` (the default) lists each file by its name, `"headings"` by its first `# ` heading |
 | `[facts]` | `check_forms` | list of strings | the forms a pytest check of a fact may take: the check's tokens, its `file::function` selectors removed, must equal one form's, where a `*` token stands for any one token. Absent: `cpt facts` audits no check's form (its selectors still are) |
 | | `[facts.check_forms]` | table of lists of strings | the alternative to a flat `check_forms`, with one optional list per runner: `pytest` (the flat list's meaning), `vitest` and `playwright` (the by-id forms), `vitest-files`, `cargo`, `swift`. Any other key is an error. See below |
+| | `release_reports` | list of strings | the names (file stems) of the reports written by release-profile cargo jobs; see cargo below |
 | `[tracking]` | `project` | string | the tracking Project's title |
 | | `rule_page` | string | the project's tracking rule page, from the repository root |
 | `[qa]` | `up`, `down`, `status`, `guard` | string | command lines |
@@ -145,5 +146,56 @@ playwright = ['pnpm exec playwright test <file> -g "<id>"']
 A fact with such a check is green when, in the reports, at least one entry of `<file>` has an own title
 starting with `"<id> "` and every such entry passed (the `-t`/`-g` pattern itself is not evaluated). The
 audit, in every mode, requires the file to exist and hold a test whose title starts with the id.
-`vitest-files`, `cargo` and `swift` are read and kept; their checks are not yet matched, so a fact using
-one of those forms is still a fault.
+`vitest-files` is read and kept; its checks are not yet matched.
+
+### `&&`
+
+A check may join parts with `&&` (outside quotes), for every runner. Each part is audited and judged
+on its own: the fact is green when every part selects at least one entry and every selected entry
+passed. Local mode runs the parts one after the other, without a shell, and stops at the first failure.
+
+### cargo
+
+```toml
+[facts]
+release_reports = ["rust-release"]
+
+[facts.check_forms]
+cargo = [
+  "cargo test -p * --test *",
+  "cargo test -p * --test * --release",
+  "cargo test -p * --lib",
+  "cargo test -p * --lib --release",
+]
+```
+
+A cargo check is `cargo test -p <pkg> (--test <bin> | --lib) [--release] [-- <filter> ...]` and nothing
+else: `--exact`, `--ignored`, `--nocapture`, `--features` and any other flag are refused. The declared
+forms are matched on the check with its filters removed and its flags in the order shown (so
+`--release --test x` fits `--test * --release`); without a `cargo` form only that grammar is audited.
+The reports are nextest's (`cpt facts report nextest`): an entry belongs to `<pkg>::<bin>`, or to
+`<pkg>` for `--lib`. With filters, each filter must select at least one entry (it is a substring of the
+test path, as libtest without `--exact`) and every selected entry must have passed; without, every
+entry of the binary is selected, and there must be one.
+
+`release_reports` lists the **names of the reports** (the file's stem, which is the job name, without
+`.json`) written by release-profile jobs. A `--release` check reads only those; any other cargo check
+reads only the others. A `--release` check with no release report is `not run`.
+
+The static audit, in every mode including `--orphans`: `<pkg>` is a workspace member (the manifest
+directories come from `cargo metadata`, which runs once, only when a cargo check exists, offline);
+`tests/<bin>.rs` (or `tests/<bin>/main.rs`) exists in it, or for `--lib` its `src/` holds `.rs` files;
+and each filter's literal appears in that file (in `src/` for `--lib`). A filter containing `::` is
+checked by its last non-empty segment.
+
+### swift
+
+```toml
+[facts.check_forms]
+swift = ["swift test --package-path agent --filter *"]
+```
+
+A swift check is audited for its form only (it must equal a declared `swift` form token for token;
+without one it is a fault) and is never judged by `--reports`: there is no Swift report, so a fact made
+only of swift parts prints `not gated (swift)` and counts neither green nor red. In a `&&` conjunction
+the other parts are still judged. Locally, `--runner swift` runs it by exit code.

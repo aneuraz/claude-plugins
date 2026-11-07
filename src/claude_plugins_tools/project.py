@@ -54,6 +54,9 @@ class Project:
     #: Per-runner forms from the `[facts.check_forms]` sub-table (`vitest`, `playwright`,
     #: `vitest-files`, `cargo`, `swift`); empty when `check_forms` is a flat list.
     runner_forms: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    #: Report names (file stems) written by release-profile jobs: what `--release` cargo
+    #: checks read, and the only reports they read.
+    release_reports: tuple[str, ...] = ()
     # [tracking]
     project: str | None = None
     rule_page: str | None = None
@@ -130,7 +133,7 @@ _SCHEMA: dict[str, dict[str, Any]] = {
         "archive_named": _strs,
         "index_sections": _tables(("title", "dir", "glob"), {"kind": ("files", "headings")}),
     },
-    "facts": {"check_forms": _check_forms},
+    "facts": {"check_forms": _check_forms, "release_reports": _strs},
     "tracking": {"project": _str, "rule_page": _str},
     "qa": {
         "up": _str,

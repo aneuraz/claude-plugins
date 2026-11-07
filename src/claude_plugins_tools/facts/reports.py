@@ -15,14 +15,16 @@ entry passed. No report, or no selected entry, reads ``not run``, never green.
 
 import json
 import re
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from pathlib import Path
 from typing import NamedTuple
 
+from claude_plugins_tools.facts import cargo
 from claude_plugins_tools.facts.selectors import (
     SELECTOR_PATTERN,
     by_id_selector,
     runner_of,
+    split_parts,
 )
 
 NOT_RUN = "not run"
@@ -121,10 +123,53 @@ def _red(entry: Entry, job: str) -> RedTest | None:
 
 
 def red_tests(
-    check: str, reports: Reports, runner_forms: Mapping[str, tuple[str, ...]] | None = None
+    check: str,
+    reports: Reports,
+    runner_forms: Mapping[str, tuple[str, ...]] | None = None,
+    release_reports: Collection[str] = (),
 ) -> list[RedTest]:
-    """Each test this check names that the reports do not show passed; a check
-    that selects nothing yields one `not run`."""
+    """Each test this check names that the reports do not show passed; a part that
+    selects nothing yields one `not run`. The parts joined by `&&` all count: the fact
+    is green when every part selects at least one entry and every selected entry passed."""
+    red: list[RedTest] = []
+    for part in split_parts(check):
+        red += _part_red(part, reports, runner_forms, release_reports)
+    return red
+
+
+def _cargo_red(part: str, reports: Reports, release_reports: Collection[str]) -> list[RedTest]:
+    parsed = cargo.parse(part)
+    if isinstance(parsed, str):
+        return [RedTest(part, NOT_RUN, "")]
+    # The profile decides which reports are read: a release check never reads a debug
+    # report, nor the other way round.
+    jobs = {
+        job: [(e.id, e.title) for e in report.values() if e.binary == parsed.binary]
+        for job, report in reports.items()
+        if (job in release_reports) == parsed.release
+    }
+    red: list[RedTest] = []
+    for filter_, selected in cargo.select(parsed, jobs):
+        if not selected:
+            what = f"{parsed.binary} {filter_}" if filter_ else parsed.binary
+            red.append(RedTest(what, NOT_RUN, ""))
+        for job, entry_id, _ in selected:
+            if (item := _red(reports[job][entry_id], job)) is not None:
+                red.append(item)
+    return red
+
+
+def _part_red(
+    check: str,
+    reports: Reports,
+    runner_forms: Mapping[str, tuple[str, ...]] | None,
+    release_reports: Collection[str],
+) -> list[RedTest]:
+    runner = runner_of(check)
+    if runner == "cargo":
+        return _cargo_red(check, reports, release_reports)
+    if runner == "swift":
+        return []  # audited for form only; no report holds it
     by_id = by_id_selector(check, runner_forms)
     if by_id is not None:
         file, fact_id = by_id

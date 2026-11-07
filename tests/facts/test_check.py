@@ -536,7 +536,7 @@ def test_a_check_outside_the_form_is_a_fault(
         "-o addopts=",
         "--deselect tests/t.py::b",
         "-m deid",
-        "&& true",
+        "; true",
         "--exact --exact",
     ):
         check = f"uv run --all-packages --exact pytest tests/t.py::a -v {extra}"

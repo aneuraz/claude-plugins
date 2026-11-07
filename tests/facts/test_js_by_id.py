@@ -158,7 +158,7 @@ def test_the_file_must_exist(tmp_path: Path) -> None:
     "check",
     [
         VITEST + " --reporter=json",
-        'pnpm exec vitest run tests/contracts/a.test.ts -t "APP-001" && true',
+        'pnpm exec vitest run tests/contracts/a.test.ts -t "APP-001" ; true',
         'pnpm exec vitest run tests/contracts/a.test.ts tests/b.test.ts -t "APP-001"',
         "pnpm exec vitest run tests/contracts/a.test.ts",
     ],

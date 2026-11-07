@@ -46,6 +46,7 @@ from typing import NamedTuple
 
 import yaml
 
+from claude_plugins_tools.facts import cargo
 from claude_plugins_tools.facts.reports import (
     DuplicateReportError,
     MalformedReportError,
@@ -58,6 +59,7 @@ from claude_plugins_tools.facts.selectors import (
     RUNNERS,
     runner_of,
     selector_fault,
+    split_parts,
 )
 from claude_plugins_tools.project import ProjectError, load_project
 
@@ -66,7 +68,7 @@ RANGE_PATTERN = re.compile(r"([A-Z]{2,4})-(\d{3}) (?:à|to) \1-(\d{3})")
 MARKER_PATTERN = re.compile(r"(?:^|\s)-m\s+(\w+)")
 # The bare gate stays local: Playwright needs an end-to-end stack (services,
 # a built front end, browsers), so it runs only when named explicitly.
-LOCAL_RUNNERS = ("pytest", "vitest")
+LOCAL_RUNNERS = ("pytest", "vitest", "cargo")
 
 
 class Verdict(NamedTuple):
@@ -129,15 +131,18 @@ def requires_fault(fact: Mapping[str, object]) -> str | None:
 
 
 def run_check(check: str, root: Path) -> bool:
-    """Run one fact's check verbatim from `root`; on failure, print the runner's
-    own output."""
-    result = subprocess.run(  # noqa: S603 — argv from the versioned fact-set, no shell
-        shlex.split(check), shell=False, capture_output=True, check=False, cwd=root
-    )
-    if result.returncode != 0:
-        for stream in (result.stdout, result.stderr):
-            print(stream.decode("utf-8", errors="replace"), end="")
-    return result.returncode == 0
+    """Run one fact's check from `root`, its `&&`-joined parts one after the other
+    and stopping at the first failure (no shell involved); on failure, print the
+    runner's own output."""
+    for part in split_parts(check):
+        result = subprocess.run(  # noqa: S603 — argv from the versioned fact-set, no shell
+            shlex.split(part), shell=False, capture_output=True, check=False, cwd=root
+        )
+        if result.returncode != 0:
+            for stream in (result.stdout, result.stderr):
+                print(stream.decode("utf-8", errors="replace"), end="")
+            return False
+    return True
 
 
 def _process_fact(  # noqa: PLR0911, PLR0913 — one return per skip rule, one knob per option
@@ -152,6 +157,8 @@ def _process_fact(  # noqa: PLR0911, PLR0913 — one return per skip rule, one k
     excluded: frozenset[str] = frozenset(),
     forms: Sequence[str] | None = None,
     runner_forms: Mapping[str, tuple[str, ...]] | None = None,
+    release_reports: Sequence[str] = (),
+    members: cargo.Members | None = None,
 ) -> Verdict:
     """Audit one fact, then judge it: from `reports` when given, else by
     running its check if selected. `excluded` (local mode only) lists, without
@@ -174,6 +181,7 @@ def _process_fact(  # noqa: PLR0911, PLR0913 — one return per skip rule, one k
                 forms,
                 runner_forms=runner_forms,
                 fact_id=str(fact["id"]),
+                members=members,
             )
         ]
         if excluded and reports is None:
@@ -185,13 +193,18 @@ def _process_fact(  # noqa: PLR0911, PLR0913 — one return per skip rule, one k
         return Verdict(orphan, ambiguous)
     if args.implemented and fact["status"] != "@implemented":
         return Verdict(orphan, ambiguous)
+    parts = split_parts(fact["check"])
+    if reports is not None and all(runner_of(part) == "swift" for part in parts):
+        # Audited for form above; no report holds a swift test, so it is not judged.
+        print(f"- {fact['id']} [{fact['status']}] not gated (swift): {fact['statement']}")
+        return Verdict(orphan, ambiguous)
     if reports is not None:
-        red = red_tests(fact["check"], reports, runner_forms)
+        red = red_tests(fact["check"], reports, runner_forms, release_reports)
         print(f"{'✗' if red else '✓'} {fact['id']} [{fact['status']}] {fact['statement']}")
         for test in red:
             print(f"    {test.test}: {test.reason}" + (f" ({test.job})" if test.job else ""))
         return Verdict(orphan, ambiguous, fact["id"] if red else None)
-    if runner_of(fact["check"]) not in selected:
+    if not {runner_of(part) for part in parts} <= selected:
         return Verdict(orphan, ambiguous)
     required = fact.get("requires", [])
     if isinstance(required, list) and excluded & set(required):
@@ -215,6 +228,20 @@ def _reports_of(directory: Path | None) -> Reports | None:
     if not reports:
         print(f"✗ no report under {directory}")
     return reports
+
+
+def _members_of(root: Path, provider: cargo.Members | None) -> cargo.Members:
+    """The workspace members, asked of `cargo metadata` once and only when a cargo
+    check needs them; `provider` replaces it (tests)."""
+    found: dict[str, Path] | None = None
+
+    def members() -> dict[str, Path]:
+        nonlocal found
+        if found is None:
+            found = dict(provider()) if provider else cargo.workspace_members(root)
+        return found
+
+    return members
 
 
 def build_parser(parser: argparse.ArgumentParser | None = None) -> argparse.ArgumentParser:
@@ -256,8 +283,10 @@ def build_parser(parser: argparse.ArgumentParser | None = None) -> argparse.Argu
     return parser
 
 
-def run(args: argparse.Namespace) -> int:  # noqa: PLR0912 — one pass, one branch per audit
-    """The gate for parsed `args`; the exit code."""
+def run(  # noqa: PLR0912 — one pass, one branch per audit
+    args: argparse.Namespace, members: cargo.Members | None = None
+) -> int:
+    """The gate for parsed `args`; the exit code. `members` replaces `cargo metadata`."""
     selected = args.runner
     root = args.root.resolve()
     excluded = frozenset(name for name in args.exclude_requires.split(",") if name)
@@ -267,6 +296,7 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0912 — one pass, one bra
         print(f"✗ {error}", file=sys.stderr)
         return 1
     forms, runner_forms = project.check_forms, project.runner_forms
+    members = _members_of(root, members)
     try:
         reports = _reports_of(args.reports)
     except DuplicateReportError as error:
@@ -306,6 +336,8 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0912 — one pass, one bra
                 excluded=excluded,
                 forms=forms,
                 runner_forms=runner_forms,
+                release_reports=project.release_reports,
+                members=members,
             )
             if verdict.orphan is not None:
                 orphans.append(verdict.orphan)
@@ -329,8 +361,8 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0912 — one pass, one bra
     return 1 if failed or orphans or ambiguous else 0
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    return run(build_parser().parse_args(argv))
+def main(argv: Sequence[str] | None = None, members: cargo.Members | None = None) -> int:
+    return run(build_parser().parse_args(argv), members)
 
 
 if __name__ == "__main__":
