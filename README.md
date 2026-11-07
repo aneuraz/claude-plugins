@@ -25,6 +25,8 @@ In the project's `.claude/settings.json`:
 
 Add one `rules-<pack>@datazard-plugins` entry per rule pack the project wants.
 
+Never install a `rules-*` pack at user scope: it would apply to every project. A project declares its packs in its own `.claude/settings.json`.
+
 ## Auto-update
 
 Auto-update is off by default for a third-party marketplace. Each user turns it on once:

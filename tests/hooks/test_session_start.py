@@ -87,6 +87,51 @@ def test_user_scope_counts_everywhere(tmp_path):
     assert "not loaded" not in _context(out)
 
 
+def test_user_scope_pack_is_named(tmp_path):
+    project = _project(tmp_path, ["rules-python"])
+    entries = [
+        {"id": "rules-rust" + MARKET, "scope": "user", "enabled": True},
+        {"id": "rules-go" + MARKET, "scope": "synced", "enabled": True},
+        {"id": "rules-off" + MARKET, "scope": "user", "enabled": False},
+        {"id": "core" + MARKET, "scope": "user", "enabled": True},
+    ]
+    out = _load().main(STDIN, _env(project), lambda _project: entries)
+    last = _context(out).splitlines()[-1]
+    assert "rules-rust" + MARKET in last
+    assert "rules-go" + MARKET in last
+    assert "rules-off" not in last
+    assert "core" not in last
+    assert "every project" in last
+    assert "project scope" in last
+
+
+def test_project_scope_pack_is_not_named(tmp_path):
+    project = _project(tmp_path, ["rules-python"])
+    entries = [
+        {
+            "id": "rules-python" + MARKET,
+            "scope": "project",
+            "enabled": True,
+            "projectPath": str(project),
+        }
+    ]
+    out = _load().main(STDIN, _env(project), lambda _project: entries)
+    assert "every project" not in _context(out)
+    assert _context(out) == BASE[:CAP]
+
+
+def test_user_scope_line_without_declaration(tmp_path):
+    entries = [{"id": "rules-rust" + MARKET, "scope": "user", "enabled": True}]
+    out = _load().main(STDIN, _env(tmp_path), lambda _project: entries)
+    assert "rules-rust" + MARKET in _context(out).splitlines()[-1]
+
+
+def test_lister_unavailable_adds_no_user_scope_line(tmp_path):
+    project = _project(tmp_path, ["rules-python"])
+    out = _load().main(STDIN, _env(project), lambda _project: None)
+    assert "every project" not in _context(out)
+
+
 def test_lister_unavailable(tmp_path):
     project = _project(tmp_path, ["rules-python"])
     out = _load().main(STDIN, _env(project), lambda _project: None)
