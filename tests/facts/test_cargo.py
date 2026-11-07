@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from claude_plugins_tools.facts import cargo
+from claude_plugins_tools.facts import cargo, convert
 from claude_plugins_tools.facts import check as facts_check
 from claude_plugins_tools.facts.reports import Entry, load_reports, red_tests
 
@@ -31,7 +31,7 @@ CONJUNCTION = (
 )
 TOML = """\
 [facts]
-release_reports = ["rust-release.json"]
+release_reports = ["rust-release"]
 
 [facts.check_forms]
 cargo = [
@@ -100,7 +100,7 @@ def test_every_filter_selects_an_entry_and_all_passed(tmp_path: Path) -> None:
     _project(tmp_path, BACKUP)
     _report(
         tmp_path,
-        "debug.json",
+        "debug",
         "cap::backup",
         ("backup_writes_a_tree_and_a_recoverable_key", "passed"),
         ("backup_fails_when_the_key_cannot_be_sealed", "passed"),
@@ -113,7 +113,7 @@ def test_a_filter_is_a_substring_of_the_test_path(tmp_path: Path) -> None:
     _project(tmp_path, PATH_FILTER)
     _report(
         tmp_path,
-        "debug.json",
+        "debug",
         "store::spool",
         ("spool::a_managed_blob_name_is_always_a_single_component", "passed"),
     )
@@ -126,7 +126,7 @@ def test_a_filter_selecting_nothing_is_not_run_even_when_another_passes(tmp_path
     _project(tmp_path, BACKUP)
     _report(
         tmp_path,
-        "debug.json",
+        "debug",
         "cap::backup",
         ("backup_writes_a_tree_and_a_recoverable_key", "passed"),
     )
@@ -137,30 +137,30 @@ def test_a_filter_selecting_nothing_is_not_run_even_when_another_passes(tmp_path
 
 def test_no_filter_selects_the_whole_binary(tmp_path: Path) -> None:
     _project(tmp_path, "cargo test -p cap --test backup")
-    _report(tmp_path, "debug.json", "cap::backup", ("a", "passed"), ("b", "failed"))
-    _report(tmp_path, "debug.json", "cap::other", ("c", "failed"))
+    _report(tmp_path, "debug", "cap::backup", ("a", "passed"), ("b", "failed"))
+    _report(tmp_path, "debug", "cap::other", ("c", "failed"))
     assert _red("cargo test -p cap --test backup", tmp_path) == [("cap::backup::b", "failed")]
 
 
 def test_no_entry_in_the_binary_is_not_run(tmp_path: Path) -> None:
     _project(tmp_path, "cargo test -p cap --test backup")
-    _report(tmp_path, "debug.json", "cap::other", ("c", "passed"))
+    _report(tmp_path, "debug", "cap::other", ("c", "passed"))
     assert _red("cargo test -p cap --test backup", tmp_path) == [("cap::backup", "not run")]
 
 
 def test_lib_selects_the_package_binary_only(tmp_path: Path) -> None:
     _project(tmp_path, LIB)
-    _report(tmp_path, "debug.json", "store", ("spool::a", "passed"))
-    _report(tmp_path, "debug.json", "store::spool", ("spool::b", "failed"))
+    _report(tmp_path, "debug", "store", ("spool::a", "passed"))
+    _report(tmp_path, "debug", "store::spool", ("spool::b", "failed"))
     assert _red(LIB, tmp_path) == []
     assert _red("cargo test -p store --lib", tmp_path) == []
 
 
 def test_release_reads_only_the_release_reports(tmp_path: Path) -> None:
     _project(tmp_path, BENCH)
-    _report(tmp_path, "rust-debug.json", "cap::bench_ingest", ("p95_under_100ms", "failed"))
+    _report(tmp_path, "rust-debug", "cap::bench_ingest", ("p95_under_100ms", "failed"))
     assert _red(BENCH, tmp_path) == [("cap::bench_ingest p95_under_100ms", "not run")]
-    _report(tmp_path, "rust-release.json", "cap::bench_ingest", ("p95_under_100ms", "passed"))
+    _report(tmp_path, "rust-release", "cap::bench_ingest", ("p95_under_100ms", "passed"))
     assert _red(BENCH, tmp_path) == []
     # and the debug run does not read the release report
     _project(tmp_path, "cargo test -p cap --test bench_ingest")
@@ -170,23 +170,23 @@ def test_release_reads_only_the_release_reports(tmp_path: Path) -> None:
 
 
 def test_a_release_check_without_declared_release_reports_is_not_run(tmp_path: Path) -> None:
-    _project(tmp_path, BENCH, toml=TOML.replace('release_reports = ["rust-release.json"]\n', ""))
-    _report(tmp_path, "rust-release.json", "cap::bench_ingest", ("p95_under_100ms", "passed"))
+    _project(tmp_path, BENCH, toml=TOML.replace('release_reports = ["rust-release"]\n', ""))
+    _report(tmp_path, "rust-release", "cap::bench_ingest", ("p95_under_100ms", "passed"))
     assert _red(BENCH, tmp_path) == [("cap::bench_ingest p95_under_100ms", "not run")]
 
 
 def test_release_reports_are_named_by_file_stem(tmp_path: Path) -> None:
-    _project(tmp_path, BENCH, toml=TOML.replace("rust-release.json", "rust-release"))
+    _project(tmp_path, BENCH, toml=TOML.replace("rust-release", "rust-release"))
     _report(tmp_path, "rust-release", "cap::bench_ingest", ("p95_under_100ms", "passed"))
     assert _red(BENCH, tmp_path) == []
 
 
 def test_the_conjunction_needs_every_part(tmp_path: Path) -> None:
     _project(tmp_path, CONJUNCTION)
-    _report(tmp_path, "debug.json", "cap::containment", ("c", "passed"))
+    _report(tmp_path, "debug", "cap::containment", ("c", "passed"))
     _report(
         tmp_path,
-        "debug.json",
+        "debug",
         "store::spool",
         ("a_managed_blob_name_is_always_a_single_component", "passed"),
     )
@@ -195,7 +195,7 @@ def test_the_conjunction_needs_every_part(tmp_path: Path) -> None:
     ]
     _report(
         tmp_path,
-        "debug.json",
+        "debug",
         "store::spool",
         ("a_captured_at_that_is_not_rfc3339_invalidates_the_entry", "failed"),
     )
@@ -242,7 +242,7 @@ def test_the_gate_is_green_when_reports_prove_the_check(
     _project(tmp_path, BACKUP)
     _report(
         tmp_path,
-        "debug.json",
+        "debug",
         "cap::backup",
         ("backup_writes_a_tree_and_a_recoverable_key", "passed"),
         ("backup_fails_when_the_key_cannot_be_sealed", "passed"),
@@ -439,7 +439,59 @@ def test_local_mode_runs_the_parts_in_order_and_stops_at_a_failure(
 
 def test_project_reads_release_reports(tmp_path: Path) -> None:
     _project(tmp_path, BACKUP)
-    assert facts_check.load_project(tmp_path).release_reports == ("rust-release.json",)
+    assert facts_check.load_project(tmp_path).release_reports == ("rust-release",)
     assert facts_check.load_project(tmp_path).runner_forms["swift"] == (
         "swift test --package-path agent --filter *",
     )
+
+
+@pytest.mark.parametrize(
+    "check",
+    [
+        "cargo test -p cap --test a --test b -- x",
+        "cargo test -p a -p b --lib",
+        "cargo test -p a --package b --lib",
+        "cargo test -p cap --lib --lib",
+        "cargo test -p cap --test backup --release --release",
+        "cargo test -p cap --lib --test backup",
+    ],
+)
+def test_a_repeated_or_conflicting_flag_is_a_fault(tmp_path: Path, check: str) -> None:
+    assert _fault(check, tmp_path) is not None
+    assert isinstance(cargo.parse(check), str)
+
+
+@pytest.mark.parametrize("tail", ["; true", "|| true", "| cat", "> out"])
+def test_a_shell_construct_other_than_and_is_still_a_fault(tmp_path: Path, tail: str) -> None:
+    assert _fault(f"{BACKUP} {tail}", tmp_path) is not None
+
+
+# `cargo nextest run` of a scratch workspace holding the dashed package `cap-app`
+# (cargo-nextest 0.9.151): the suite names are the package name, dashes kept.
+DASHED_JUNIT = """<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="nextest-run" tests="2" skipped="0" failures="0" errors="0">
+    <testsuite name="cap-app::append_revision" tests="1" skipped="0" errors="0" failures="0">
+        <testcase name="it_one" classname="cap-app::append_revision" time="0.012"/>
+    </testsuite>
+    <testsuite name="cap-app" tests="1" skipped="0" errors="0" failures="0">
+        <testcase name="lib_one" classname="cap-app" time="0.012"/>
+    </testsuite>
+</testsuites>
+"""
+
+
+def test_a_dashed_package_is_selected_end_to_end(tmp_path: Path) -> None:
+    raw = tmp_path / "junit.xml"
+    raw.write_text(DASHED_JUNIT, encoding="utf-8")
+    out = tmp_path / "reports" / "debug.json"
+    out.parent.mkdir()
+    convert.convert("nextest", raw, out)
+    reports = load_reports(out.parent)
+    assert {e.binary for e in reports["debug"].values()} == {"cap-app", "cap-app::append_revision"}
+    for check in (
+        "cargo test -p cap-app --test append_revision -- it_one",
+        "cargo test -p cap-app --lib -- lib_one",
+    ):
+        assert red_tests(check, reports) == []
+    missing = red_tests("cargo test -p cap-app --lib -- it_one", reports)
+    assert [r.reason for r in missing] == ["not run"]

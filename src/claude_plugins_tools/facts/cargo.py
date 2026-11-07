@@ -38,7 +38,8 @@ class CargoCheck(NamedTuple):
 
 def _flags(head: Sequence[str]) -> tuple[dict[str, str], set[str]] | str:
     """The valued (-p, --package, --test) and bare (--lib, --release) flags of the head,
-    or the first token outside the grammar."""
+    or the first token outside the grammar. A flag given twice is outside it: cargo
+    would run both targets, and keeping one would hide the other from the verdict."""
     valued: dict[str, str] = {}
     bare: set[str] = set()
     it = iter(head)
@@ -47,8 +48,13 @@ def _flags(head: Sequence[str]) -> tuple[dict[str, str], set[str]] | str:
             value = next(it, None)
             if value is None or value.startswith("-"):
                 return f"{arg} without a name"
-            valued["--test" if arg == "--test" else "-p"] = value
+            key = "--test" if arg == "--test" else "-p"
+            if key in valued:
+                return f"{arg} is given twice" if arg != "--package" else "--package repeats -p"
+            valued[key] = value
         elif arg in ("--lib", "--release"):
+            if arg in bare:
+                return f"{arg} is given twice"
             bare.add(arg)
         else:
             return f"{arg} is outside the cargo form"
