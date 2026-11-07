@@ -71,3 +71,12 @@ Facts not judged under `--implemented` are listed as pending, with their status.
 ## Left to the builder
 
 How each rewritten `capture` shell check becomes a test (a Rust test reading a file, a test running the i18n emit check, a vitest test); the nextest profile names and the serial group's membership; the wording of new faults.
+
+## Amendments after the plan review (2026-11-07)
+
+- **`check_forms` stays readable as a flat list** of strings (the pytest forms, as `candle` declares it today); per-runner forms are optional sub-tables (`[facts.check_forms] vitest = […]`).
+- **Swift checks** have a declared `swift` form that the static audit checks (form only) and the gate never judges; `capture`'s `agent` facts stay ungated. `--orphans` traces every fact; the form audit applies to every fact.
+- **Cargo audit paths** come from `cargo metadata` (workspace members' manifest directories), not a fixed `crates/<pkg>/`; a filter containing `::` is checked by its last segment.
+- **`--only` is repeatable.** When `--exclude-requires` is given, the markers audit (`-m` markers equal `requires`) runs in reports mode too.
+- **Whole-file vitest**: the form is the project's own command (`npm --prefix app test -- <files…> [-t <regex>]` for `capture`, verified on the runner); `-t` is a regex over the full name, as vitest; a check that names no file is not a whole-file form and is rewritten to name its files. vitest's `testResults[].name` is absolute; the converter makes it relative to the repository root.
+- **`capture`'s `SECURITY.md` §7**: only the lines that name the gate's command change, to describe `cpt facts --reports` (owner, 2026-11-07); the rest of the file and its numbering stay.
