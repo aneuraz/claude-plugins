@@ -4,7 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from claude_plugins_tools.project import IndexSection, Project, ProjectError, Surface, load_project
+from claude_plugins_tools.project import (
+    FactSchema,
+    IndexSection,
+    Project,
+    ProjectError,
+    Surface,
+    load_project,
+)
 
 DOC = Path(__file__).parent.parent / "docs" / "project-toml.md"
 
@@ -130,4 +137,31 @@ def test_flat_check_forms_leave_no_runner_forms(tmp_path):
 def test_check_forms_sub_table_refuses_a_bad_entry(tmp_path, body):
     write(tmp_path, f"[facts.check_forms]\n{body}\n")
     with pytest.raises(ProjectError, match=r"facts\.check_forms"):
+        load_project(tmp_path)
+
+
+def test_facts_options_orphans_owner_and_schema(tmp_path):
+    write(
+        tmp_path,
+        '[facts]\norphans = "facts-lines"\nowner = true\n'
+        '[facts.schema]\nallowed = ["id", "timeout"]\nrequired = ["id"]\nstatuses = ["@spec"]\n',
+    )
+    project = load_project(tmp_path)
+    assert (project.orphans, project.owner) == ("facts-lines", True)
+    assert project.schema == FactSchema(("id", "timeout"), ("id",), ("@spec",))
+    assert load_project(tmp_path.parent).orphans == "design-text"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        '[facts]\norphans = "elsewhere"\n',
+        '[facts]\nowner = "yes"\n',
+        "[facts.schema]\nallowd = []\n",
+        "[facts.schema]\nallowed = 3\n",
+    ],
+)
+def test_facts_options_refuse_bad_values(tmp_path, text):
+    write(tmp_path, text)
+    with pytest.raises(ProjectError):
         load_project(tmp_path)

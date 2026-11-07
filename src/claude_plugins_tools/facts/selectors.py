@@ -21,7 +21,7 @@ import shlex
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from claude_plugins_tools.facts import cargo
+from claude_plugins_tools.facts import cargo, vitest_files
 
 DEFAULT_VITEST_ROOT = "agent"
 SELECTOR_PATTERN = re.compile(r"(\S+\.py)::(\w+)(\[[^\s\]]*\])?")
@@ -53,13 +53,16 @@ def split_parts(check: str) -> list[str]:
     return parts
 
 
-def runner_of(check: str) -> str:
-    """The tool this check invokes, for --runner filtering.
+def runner_of(check: str, runner_forms: Mapping[str, Sequence[str]] | None = None) -> str:
+    """The tool this check invokes, for --runner filtering. A check in a declared
+    whole-file vitest form (the project's own command) is vitest's.
 
     Matched against argv tokens, not the raw string: a path or flag that
     happens to contain "pytest" as a substring must not be mistaken for the
     token that names the runner.
     """
+    if vitest_files.parse(check, (runner_forms or {}).get("vitest-files")) is not None:
+        return "vitest"
     try:
         tokens = set(shlex.split(check))
     except ValueError:
@@ -267,6 +270,12 @@ def selector_fault(  # noqa: PLR0913 — one knob per audit the caller configure
     for part in split_parts(check):
         if not part:
             return f"an empty part in {check!r}"
+        files = vitest_files.parse(part, (runner_forms or {}).get("vitest-files"))
+        if files is not None:
+            fault = files if isinstance(files, str) else vitest_files.fault(files, root)
+            if fault is not None:
+                return fault
+            continue
         fault = _part_fault(
             part,
             root,

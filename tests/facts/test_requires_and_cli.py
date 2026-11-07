@@ -74,18 +74,15 @@ def test_requires_fault_compares_markers_to_requirements() -> None:
     assert facts_check.requires_fault(_fact("AAA-003", PLAIN, requires=["net"])) is not None
 
 
-def test_exclude_requires_has_no_effect_with_reports(
+def test_exclude_requires_lists_the_fact_as_not_run_with_reports(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _project(tmp_path, [_fact("AAA-001", MARKED, requires=["integration"])])
     reports = tmp_path / "reports"
     reports.mkdir()
-    (reports / "job.json").write_text('{"tests/t.py::b": "passed"}', encoding="utf-8")
     argv = ["--exclude-requires", "integration", "--reports", str(reports)]
     assert facts_check.main([*argv, "--root", str(tmp_path)]) == 0
-    out = capsys.readouterr().out
-    assert "✓ AAA-001" in out
-    assert "not run" not in out
+    assert "not run (requires: integration)" in capsys.readouterr().out
 
 
 def test_orphans_ignores_implemented_and_runs_nothing(tmp_path: Path, ran: list[str]) -> None:

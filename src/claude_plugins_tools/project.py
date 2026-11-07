@@ -32,6 +32,15 @@ class Surface:
 
 
 @dataclass(frozen=True)
+class FactSchema:
+    """`[facts.schema]`: each list, when given, closes one aspect of a fact."""
+
+    allowed: tuple[str, ...] | None = None
+    required: tuple[str, ...] = ()
+    statuses: tuple[str, ...] | None = None
+
+
+@dataclass(frozen=True)
 class Project:
     root: Path
     # [repository]
@@ -57,6 +66,13 @@ class Project:
     #: Report names (file stems) written by release-profile jobs: what `--release` cargo
     #: checks read, and the only reports they read.
     release_reports: tuple[str, ...] = ()
+    #: How `--orphans` traces a fact: "design-text" (its id appears in the sibling
+    #: `-design.md`) or "facts-lines" (a `*Facts :*` line of any spec cites it).
+    orphans: str = "design-text"
+    #: Facts carry an `owner` field, and `--owner <name>` keeps those of that owner.
+    owner: bool = False
+    #: The closed schema of a fact (`[facts.schema]`); None: no schema audit.
+    schema: FactSchema | None = None
     # [tracking]
     project: str | None = None
     rule_page: str | None = None
@@ -109,6 +125,14 @@ def _check_forms(value: object) -> bool:
     return _strs(value)
 
 
+def _schema(value: object) -> bool:
+    return (
+        isinstance(value, dict)
+        and set(value) <= {"allowed", "required", "statuses"}
+        and all(map(_strs, value.values()))
+    )
+
+
 def _is_date(value: object) -> bool:
     return isinstance(value, date)
 
@@ -133,7 +157,13 @@ _SCHEMA: dict[str, dict[str, Any]] = {
         "archive_named": _strs,
         "index_sections": _tables(("title", "dir", "glob"), {"kind": ("files", "headings")}),
     },
-    "facts": {"check_forms": _check_forms, "release_reports": _strs},
+    "facts": {
+        "check_forms": _check_forms,
+        "release_reports": _strs,
+        "orphans": _one_of("design-text", "facts-lines"),
+        "owner": lambda value: isinstance(value, bool),
+        "schema": _schema,
+    },
     "tracking": {"project": _str, "rule_page": _str},
     "qa": {
         "up": _str,
@@ -190,6 +220,11 @@ def load_project(root: Path) -> Project:
                 raise ProjectError(f"{path}: unknown key {section}.{key}")
             if not check(value):
                 raise ProjectError(f"{path}: {section}.{key} has an invalid value: {value!r}")
+            if (section, key) == ("facts", "schema"):
+                values["schema"] = FactSchema(
+                    **{name: tuple(items) for name, items in value.items()}
+                )
+                continue
             if isinstance(value, dict):  # [facts.check_forms]
                 if "pytest" in value:
                     values["check_forms"] = tuple(value["pytest"])

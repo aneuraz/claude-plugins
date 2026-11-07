@@ -19,7 +19,7 @@ from collections.abc import Collection, Mapping
 from pathlib import Path
 from typing import NamedTuple
 
-from claude_plugins_tools.facts import cargo
+from claude_plugins_tools.facts import cargo, vitest_files
 from claude_plugins_tools.facts.selectors import (
     SELECTOR_PATTERN,
     by_id_selector,
@@ -159,7 +159,37 @@ def _cargo_red(part: str, reports: Reports, release_reports: Collection[str]) ->
     return red
 
 
+def _files_red(check: str, files: vitest_files.Selection | str, reports: Reports) -> list[RedTest]:
+    """A whole-file vitest check: the entries of its files, filtered by `-t` as vitest
+    does; at least one, all passed. A check outside its form selects nothing."""
+    selected = (
+        []
+        if isinstance(files, str)
+        else [
+            (job, entry)
+            for job, report in reports.items()
+            for entry in report.values()
+            if vitest_files.selects(files, entry.id, entry.title, entry.file)
+        ]
+    )
+    if not selected:
+        return [RedTest(check, NOT_RUN, "")]
+    return [red for job, entry in selected if (red := _red(entry, job)) is not None]
+
+
 def _part_red(
+    check: str,
+    reports: Reports,
+    runner_forms: Mapping[str, tuple[str, ...]] | None,
+    release_reports: Collection[str],
+) -> list[RedTest]:
+    files = vitest_files.parse(check, (runner_forms or {}).get("vitest-files"))
+    if files is not None:
+        return _files_red(check, files, reports)
+    return _runner_red(check, reports, runner_forms, release_reports)
+
+
+def _runner_red(
     check: str,
     reports: Reports,
     runner_forms: Mapping[str, tuple[str, ...]] | None,
