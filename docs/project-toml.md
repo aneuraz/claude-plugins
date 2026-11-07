@@ -256,7 +256,7 @@ Each list is optional and closes one aspect of a fact: `allowed` the fields (any
 `required` the fields every fact has, `statuses` the values of `status`. Whatever the lists, an
 `@implemented` fact without a `check` and a repeated id (across all fact-sets) are faults. A field the
 schema allows is not necessarily read: `capture`'s `timeout` is allowed and ignored, since the gate
-runs nothing. Without `[facts.schema]` the fact-sets are not audited.
+runs nothing. Without `[facts.schema]` the fact-sets are not audited. Schema faults, like dangling ids, concern the whole fact-set: `--only` and `--owner` do not narrow them.
 
 ## Options of `cpt facts`
 
@@ -264,7 +264,7 @@ runs nothing. Without `[facts.schema]` the fact-sets are not audited.
 |---|---|
 | `--reports DIR` | the gate: judge each fact from the reports under DIR, run nothing |
 | `--orphans` | traceability and the static audits only |
-| `--implemented` | judge only `@implemented` facts; the others are listed as `- pending: <id> [<status>]` |
+| `--implemented` | judge only `@implemented` facts; the others are listed as `- pending: <id> [<status>]`, except `@superseded` facts (they bind through their successors) |
 | `--only ID` | judge only that fact; repeatable; an unknown id is an error (exit 2) naming it |
 | `--owner NAME` | judge only the facts of that owner (`owner = true`) |
 | `--exclude-requires a,b` | a fact whose `requires` names a listed resource prints `not run (requires: …)` and is not red, in reports and in local mode; given, each fact's `-m` markers must equal its `requires` |

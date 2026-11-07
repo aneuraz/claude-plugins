@@ -23,6 +23,7 @@ from claude_plugins_tools.facts import cargo, vitest_files
 from claude_plugins_tools.facts.selectors import (
     SELECTOR_PATTERN,
     by_id_selector,
+    files_selection,
     runner_of,
     split_parts,
 )
@@ -183,7 +184,7 @@ def _part_red(
     runner_forms: Mapping[str, tuple[str, ...]] | None,
     release_reports: Collection[str],
 ) -> list[RedTest]:
-    files = vitest_files.parse(check, (runner_forms or {}).get("vitest-files"))
+    files = files_selection(check, runner_forms)
     if files is not None:
         return _files_red(check, files, reports)
     return _runner_red(check, reports, runner_forms, release_reports)

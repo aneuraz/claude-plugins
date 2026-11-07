@@ -53,6 +53,20 @@ def split_parts(check: str) -> list[str]:
     return parts
 
 
+def files_selection(
+    check: str, runner_forms: Mapping[str, Sequence[str]] | None
+) -> vitest_files.Selection | str | None:
+    """The whole-file reading of `check`, unless it is in a by-id form: when the two
+    forms share a prefix, the by-id one (which names its fact) wins."""
+    forms = runner_forms or {}
+    if any(
+        forms.get(runner) and _by_id_match(check, forms[runner]) is not None
+        for runner in BY_ID_RUNNERS
+    ):
+        return None
+    return vitest_files.parse(check, forms.get("vitest-files"))
+
+
 def runner_of(check: str, runner_forms: Mapping[str, Sequence[str]] | None = None) -> str:
     """The tool this check invokes, for --runner filtering. A check in a declared
     whole-file vitest form (the project's own command) is vitest's.
@@ -61,7 +75,7 @@ def runner_of(check: str, runner_forms: Mapping[str, Sequence[str]] | None = Non
     happens to contain "pytest" as a substring must not be mistaken for the
     token that names the runner.
     """
-    if vitest_files.parse(check, (runner_forms or {}).get("vitest-files")) is not None:
+    if files_selection(check, runner_forms) is not None:
         return "vitest"
     try:
         tokens = set(shlex.split(check))
@@ -270,7 +284,7 @@ def selector_fault(  # noqa: PLR0913 — one knob per audit the caller configure
     for part in split_parts(check):
         if not part:
             return f"an empty part in {check!r}"
-        files = vitest_files.parse(part, (runner_forms or {}).get("vitest-files"))
+        files = files_selection(part, runner_forms)
         if files is not None:
             fault = files if isinstance(files, str) else vitest_files.fault(files, root)
             if fault is not None:

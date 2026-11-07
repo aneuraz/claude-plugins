@@ -89,10 +89,14 @@ def parse(check: str, forms: Sequence[str] | None) -> Selection | str | None:
         tokens = shlex.split(check)
     except ValueError:
         return None
+    faults = []
     for form in forms or ():
-        if (found := _parse_with(check, tokens, form)) is not None:
+        found = _parse_with(check, tokens, form)
+        if isinstance(found, Selection):
             return found
-    return None
+        if found is not None:
+            faults.append(found)
+    return faults[0] if faults else None
 
 
 def fault(selection: Selection, root: Path) -> str | None:

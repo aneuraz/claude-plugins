@@ -21,7 +21,7 @@ fact or facts that bind in its place.
 when every test its check names passed in the test jobs' reports under DIR.
 Without it, each check runs verbatim, one process each: the local mode.
 
---exclude-requires LIST (local mode only) lists, without running them, the facts
+--exclude-requires LIST lists, without running or judging them, the facts
 whose `requires` names a listed resource; a silent exclusion would read as a
 pass. Given, it also audits that each fact's `-m` markers equal its `requires`.
 
@@ -288,7 +288,7 @@ def build_parser(parser: argparse.ArgumentParser | None = None) -> argparse.Argu
         "--exclude-requires",
         default="",
         metavar="LIST",
-        help="local run only: comma list of resources whose facts are listed, not run",
+        help="comma list of resources whose facts are listed as not run, never red",
     )
     parser.add_argument(
         "--only",
@@ -325,6 +325,7 @@ class Findings:
     pending: list[str] = field(default_factory=list)
     schema: list[str] = field(default_factory=list)
     dangling: list[str] = field(default_factory=list)
+    orphan_text: str = "missing from the design"
 
     def add(self, verdict: Verdict) -> None:
         for found, kind in (
@@ -343,7 +344,7 @@ class Findings:
         if self.dangling:
             print(f"✗ dangling (cited, defined by no fact): {', '.join(self.dangling)}")
         if self.orphans:
-            print(f"✗ orphan facts (missing from the design): {', '.join(self.orphans)}")
+            print(f"✗ orphan facts ({self.orphan_text}): {', '.join(self.orphans)}")
         if self.ambiguous:
             print(f"✗ ambiguous checks: {', '.join(self.ambiguous)}")
         if self.failed:
@@ -412,6 +413,8 @@ def run(args: argparse.Namespace, members: cargo.Members | None = None) -> int:
         return 2
 
     found = Findings()
+    if project.orphans == "facts-lines":
+        found.orphan_text = "not cited on any *Facts :* line"
     seen: set[str] = set()
     for facts in raw_sets.values() if project.schema else ():
         found.schema += schema_faults(facts, project.schema, seen)

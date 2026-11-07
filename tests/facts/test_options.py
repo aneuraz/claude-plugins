@@ -9,7 +9,7 @@ import pytest
 import yaml
 
 from claude_plugins_tools.facts import check as facts_check
-from claude_plugins_tools.facts import orphans
+from claude_plugins_tools.facts import orphans, vitest_files
 
 SPECS = Path("docs") / "superpowers" / "specs"
 FILES_FORM = "[facts.check_forms]\nvitest-files = ['npm --prefix app test -- <files>']\n"
@@ -452,3 +452,55 @@ def test_implemented_lists_the_facts_not_judged_as_pending(
     assert "pending: AAA-001" not in out
     _gate(tmp_path, "--reports", str(reports))
     assert "pending" not in capsys.readouterr().out
+
+
+# ---- review round: form precedence, every form tried, exclusion scope ---------------
+
+
+def test_a_by_id_check_wins_when_both_forms_share_a_prefix(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    toml = (
+        "[facts.check_forms]\n"
+        "vitest = ['pnpm exec vitest run <file> -t \"<id>\"']\n"
+        "vitest-files = ['pnpm exec vitest run <files>']\n"
+    )
+    check = 'pnpm exec vitest run tests/a.test.ts -t "APP-001"'
+    _project(tmp_path, [_fact("APP-001", check)], toml)
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "a.test.ts").write_text('it("APP-001 does x", () => {});\n')
+    entries = [
+        _entry("tests/a.test.ts", "APP-001 does x"),
+        _entry("tests/a.test.ts", "other", "failed"),
+    ]
+    # by id: the failing entry without the id is not selected
+    assert _gate(tmp_path, "--reports", str(_report(tmp_path, entries))) == 0
+
+
+def test_a_later_form_accepts_what_an_earlier_one_refuses() -> None:
+    forms = ["npm --prefix app test -- <files> --run", "npm --prefix app test -- <files>"]
+    found = vitest_files.parse("npm --prefix app test -- src/a.test.ts", forms)
+    assert found == vitest_files.Selection("app", ("src/a.test.ts",), None)
+    # when none accepts, the fault is reported
+    assert isinstance(vitest_files.parse("npm --prefix app test -- src/a.test.ts --x", forms), str)
+
+
+def test_exclude_requires_leaves_other_facts_judged_with_reports(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    other = "uv run --all-packages --exact pytest -m b tests/t.py::b -v"
+    facts = [
+        _fact("AAA-001", PLAIN),
+        _fact("AAA-002", other, requires=["b"]),
+        _fact("AAA-003", "uv run --all-packages --exact pytest tests/t.py::c -v"),
+    ]
+    reports = _pytest_project(tmp_path, facts)
+    (tmp_path / "tests" / "t.py").write_text("def a(): pass\ndef b(): pass\ndef c(): pass\n")
+    (reports / "job.json").write_text('{"tests/t.py::a": "passed", "tests/t.py::b": "failed"}')
+    assert _gate(tmp_path, "--reports", str(reports), "--exclude-requires", "a") == 1
+    out = capsys.readouterr().out
+    assert "✓ AAA-001" in out
+    assert "✗ AAA-002" in out
+    assert "✗ AAA-003" in out
+    assert "not run" in out
+    assert "red facts: AAA-002, AAA-003" in out
