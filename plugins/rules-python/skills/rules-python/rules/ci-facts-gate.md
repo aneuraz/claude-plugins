@@ -37,4 +37,6 @@ GitHub Actions wiring for the facts gate: each test job gets the report option t
 - Pin both actions to a commit digest.
 - `download-artifact` puts each artifact in its own subdirectory; the gate reads the directory recursively.
 - The gate reads every test job. A job that did not run leaves no report, and its facts read `not run`.
+- A runner with its own report format (vitest, Playwright, cargo-nextest) converts it in its job first: `cpt facts report <runner> <raw> reports/<job>.json`, and the converted file is what the job uploads.
+- `--exclude-requires a,b` on the gate lists the facts that need a resource the CI does not have as `not run (requires: …)`, and they are not red. The gate never runs a check; a fact is judged only from the reports.
 - Make the `facts` job a required status check, so a red or orphan fact blocks the merge.

@@ -7,7 +7,7 @@ sources:
 
 # pytest check selector
 
-A fact's `check` names its test as `<file>::<function>`, or `<file>::<function>[<case>]` for one case of a parametrised test. This is pytest's own node id. The CI gate looks that name up in the test jobs' reports and runs no command.
+A fact's `check` names its test as `<file>::<function>`, or `<file>::<function>[<case>]` for one case of a parametrised test. This is pytest's own node id. The CI gate looks that name up in the test jobs' reports and runs no command; locally, `cpt facts --only <ID>` runs the check by hand.
 
 Give every check one of the project's fixed forms: the runner, its environment flags, the selector, `-v`. The forms are listed in `[facts] check_forms` of `.claude/project.toml`, each a check with its selectors removed (`*` stands for any one token), and the gate refuses a pytest check that takes none of them. A flag outside the form (`-k`, `-p`, a shell operator) would make the command differ from what the reports prove. Without `[facts] check_forms`, no form is audited: configure it.
 

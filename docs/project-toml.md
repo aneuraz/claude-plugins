@@ -24,6 +24,9 @@ Skills cite this schema by its keys (`[wiki] path`, `[qa] up`), not by this file
 | | `index_sections` | list of tables `{title, dir, glob, kind}` | the source sections of the wiki index; `kind` is optional: `"files"` (the default) lists each file by its name, `"headings"` by its first `# ` heading |
 | `[facts]` | `check_forms` | list of strings | the forms a pytest check of a fact may take: the check's tokens, its `file::function` selectors removed, must equal one form's, where a `*` token stands for any one token. Absent: `cpt facts` audits no check's form (its selectors still are) |
 | | `[facts.check_forms]` | table of lists of strings | the alternative to a flat `check_forms`, with one optional list per runner: `pytest` (the flat list's meaning), `vitest` and `playwright` (the by-id forms), `vitest-files`, `cargo`, `swift`. Any other key is an error. See below |
+| | `orphans` | `"design-text"` or `"facts-lines"` | how `--orphans` traces a fact; see below. Default `"design-text"` |
+| | `owner` | boolean | facts carry an `owner` field and `--owner <name>` keeps the facts of that owner. Default `false` |
+| | `[facts.schema]` | table | the closed schema of a fact; see below |
 | | `release_reports` | list of strings | the names (file stems) of the reports written by release-profile cargo jobs; see cargo below |
 | `[tracking]` | `project` | string | the tracking Project's title |
 | | `rule_page` | string | the project's tracking rule page, from the repository root |
@@ -146,7 +149,31 @@ playwright = ['pnpm exec playwright test <file> -g "<id>"']
 A fact with such a check is green when, in the reports, at least one entry of `<file>` has an own title
 starting with `"<id> "` and every such entry passed (the `-t`/`-g` pattern itself is not evaluated). The
 audit, in every mode, requires the file to exist and hold a test whose title starts with the id.
-`vitest-files` is read and kept; its checks are not yet matched.
+
+### Whole-file vitest
+
+```toml
+[facts.check_forms]
+vitest-files = ['npm --prefix app test -- <files>']
+```
+
+The form is the project's own command, as a developer types it, with `<files>` standing for one or
+more test files or directories. A check is that command's tokens, the files, and optionally
+`-t "<regex>"` (or `--testNamePattern`); anything else is a fault, and so is a check that names no
+file (`npm --prefix app test -- -t "carries no excerpt"`). The files are relative to the directory the
+command prefix names (`--prefix`, `-C`, `--dir` or `--cwd`; the repository root without one), and a
+report entry's `file` is relative to the repository, so `src/App.test.ts` under `--prefix app` selects
+the entries of `app/src/App.test.ts` (convert vitest's report with `--root app`). A directory selects
+the entries beneath it. The audit, in every mode, requires each file or directory to exist and the
+pattern to be a regular expression.
+
+`-t` is a regular expression searched in the entry's full name: its ancestor titles and its title
+joined by single spaces, the file's name not included (`Palette opens on key` for `it("opens on key")`
+in `describe("Palette")`). That is vitest's own definition: `getTaskFullName` in `@vitest/runner` builds
+the name and `interpretTaskModes` skips a test whose full name does not match the pattern. Python's
+regular expressions stand in for JavaScript's; keep to the syntax they share. The fact is green when
+the check selects at least one entry and every selected entry passed. The number of tests is not
+counted.
 
 ### `&&`
 
@@ -199,3 +226,47 @@ A swift check is audited for its form only (it must equal a declared `swift` for
 without one it is a fault) and is never judged by `--reports`: there is no Swift report, so a fact made
 only of swift parts prints `not gated (swift)` and counts neither green nor red. In a `&&` conjunction
 the other parts are still judged. Locally, `--runner swift` runs it by exit code.
+
+## Tracing facts to specs: `orphans`
+
+`orphans = "design-text"` (the default) calls a fact orphaned when its id does not appear in its
+sibling `*-design.md` (a range `X-001 à X-005` or `X-001 to X-005` stands for each id in it).
+
+`orphans = "facts-lines"` traces by the `*Facts :*` lines of every spec in `docs/superpowers/specs/`
+(the `*-facts.md` files excepted). A line is any line holding `*Facts :*` (so `**Facts :**` too); the
+ids on it count wherever the prose puts them. An id may carry a letter suffix (`OCR-007a`), its prefix
+may contain digits (`I18N-004`), and `X-001 à X-007` or `X-001 to X-007` is a range. A fact no line
+cites is an orphan, and an id a line cites that no fact defines is **dangling**; both fail the gate.
+
+## Owner
+
+With `owner = true`, `cpt facts --owner <name>` judges only the facts whose `owner` field is `<name>`.
+Without it, `--owner` is an error (exit 2).
+
+## Schema
+
+```toml
+[facts.schema]
+allowed = ["id", "status", "level", "statement", "check", "source", "owner", "blocker", "timeout"]
+required = ["id", "status", "level", "statement", "source", "owner"]
+statuses = ["@draft", "@spec", "@implemented"]
+```
+
+Each list is optional and closes one aspect of a fact: `allowed` the fields (any other is a fault),
+`required` the fields every fact has, `statuses` the values of `status`. Whatever the lists, an
+`@implemented` fact without a `check` and a repeated id (across all fact-sets) are faults. A field the
+schema allows is not necessarily read: `capture`'s `timeout` is allowed and ignored, since the gate
+runs nothing. Without `[facts.schema]` the fact-sets are not audited.
+
+## Options of `cpt facts`
+
+| Option | Meaning |
+|---|---|
+| `--reports DIR` | the gate: judge each fact from the reports under DIR, run nothing |
+| `--orphans` | traceability and the static audits only |
+| `--implemented` | judge only `@implemented` facts; the others are listed as `- pending: <id> [<status>]` |
+| `--only ID` | judge only that fact; repeatable; an unknown id is an error (exit 2) naming it |
+| `--owner NAME` | judge only the facts of that owner (`owner = true`) |
+| `--exclude-requires a,b` | a fact whose `requires` names a listed resource prints `not run (requires: …)` and is not red, in reports and in local mode; given, each fact's `-m` markers must equal its `requires` |
+| `--runner LIST` | local mode only: the runners to execute (`pytest`, `vitest`, `cargo`; `playwright` when named) |
+| `--root DIR`, `--vitest-root DIR` | the project root; where legacy `pnpm -C agent exec` selectors resolve |
