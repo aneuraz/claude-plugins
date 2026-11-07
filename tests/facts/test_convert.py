@@ -257,3 +257,25 @@ def test_old_facts_invocations_still_parse(tmp_path: Path) -> None:
     assert args.reports == tmp_path
     assert args.implemented is True
     assert args.facts_command is None
+
+
+def test_vitest_names_under_a_symlinked_checkout_are_resolved(tmp_path: Path) -> None:
+    real = tmp_path / "real"
+    (real / "app" / "src").mkdir(parents=True)
+    link = tmp_path / "link"
+    link.symlink_to(real, target_is_directory=True)
+    raw = {
+        "testResults": [
+            {
+                "name": str(link / "app" / "src" / "a.test.ts"),  # vitest ran under the link
+                "assertionResults": [
+                    {"ancestorTitles": [], "title": "ZZZ-001 x", "status": "passed"}
+                ],
+            }
+        ]
+    }
+    entries = convert.from_vitest(raw, "app", real)
+    assert [e["file"] for e in entries.values()] == ["app/src/a.test.ts"]
+    outside = {"testResults": [{**raw["testResults"][0], "name": str(tmp_path / "x.test.ts")}]}
+    with pytest.raises(convert.ConvertError):
+        convert.from_vitest(outside, "app", real)

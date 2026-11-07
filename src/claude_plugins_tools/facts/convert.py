@@ -56,6 +56,7 @@ def _repo_relative(name: str, root: str, repo: Path) -> str:
     base = repo.resolve() / root
     path = Path(name)
     if path.is_absolute():
+        path = path.resolve()  # the base is resolved: a symlinked checkout must not break it
         try:
             within = path.relative_to(base)
         except ValueError:

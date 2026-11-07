@@ -22,14 +22,14 @@ A fact is green when every part of its `check` (parts are joined by `&&`) select
 - pytest: the node ids it names; a bare selector (a test without a case) stands for the test and each parametrised case.
 - vitest and Playwright, by id: the entries of the named file whose own title starts with the fact's id (`<ID> `); the `-t`/`-g` pattern is not evaluated, and the id must be the fact's own.
 - vitest, whole files: the project's own command prefix, then the files (relative to the prefix's directory), then optionally `-t <regex>` over the full name (ancestor titles and title joined by spaces, as vitest does). At least one entry, all passed; no counts. A check naming no file is a fault.
-- cargo: `cargo test -p <pkg> (--test <bin> | --lib) [--release] [-- <filter> …]`; each filter must select at least one entry of that binary, and without filters every entry of the binary. `--release` checks read only the project's `release_reports`.
+- cargo: `cargo test -p <pkg> (--test <bin> | --lib) [--release] [-- <filter> …]`; each filter must select at least one entry of that binary, and without filters every entry of the binary. `--release` checks read only the project's `release_reports`. When reports exist, each declared release report with no file is a fault (the gate fails, naming it): a misspelt or cancelled release job must not leave debug checks judged from the wrong run.
 - swift: audited for its declared form only; no report holds it, so the fact prints `not gated (swift)`.
 
 Every mode, `--orphans` included, audits each check statically: the form is one the project declares in `.claude/project.toml` (`docs/project-toml.md`; with no declared forms the form is not audited), the files and functions it names exist, and each selector names one definition.
 
 - `facts --orphans`: traceability and the static audits only, no reports needed (extraction time, pre-commit, every push). `--implemented` does not affect it. A project traces by its design text (an id appears in the sibling `-design.md`) or by the `*Facts :*` lines of its specs (`orphans = "facts-lines"`; an id cited there and defined by no fact is dangling).
 - `--implemented`: only `@implemented` facts are judged (the gate at a milestone boundary); the others are listed as `- pending: <id> [<status>]`, except `@superseded` facts, which bind through their successors and are not listed.
-- `--only ID` (repeatable) and `--owner NAME` (projects with `owner = true`) narrow the facts judged; an unknown `--only` id is an error. Schema and dangling faults concern the whole fact-set, so these two options do not narrow them.
+- `--only ID` (repeatable) and `--owner NAME` (projects with `owner = true`) narrow the facts judged; an unknown `--only` id, or an `--owner` no fact carries, is an error (exit 2), never a green gate with nothing judged. Schema and dangling faults concern the whole fact-set, so these two options do not narrow them.
 - `--exclude-requires LIST`: a fact whose `requires:` names a listed resource prints `not run (requires: …)` and is not red (never silent). When given, each fact's `-m` markers must equal its `requires`.
 - `--runner LIST`: local mode only; the runners whose checks it executes (`pytest`, `vitest`, `cargo`; `playwright` only when named).
 - `--root DIR`: the repository root the spec directory is resolved from.

@@ -10,6 +10,7 @@ import yaml
 
 from claude_plugins_tools.facts import check as facts_check
 from claude_plugins_tools.facts import orphans, vitest_files
+from claude_plugins_tools.facts.selectors import files_selection
 
 SPECS = Path("docs") / "superpowers" / "specs"
 FILES_FORM = "[facts.check_forms]\nvitest-files = ['npm --prefix app test -- <files>']\n"
@@ -475,6 +476,8 @@ def test_a_by_id_check_wins_when_both_forms_share_a_prefix(
     ]
     # by id: the failing entry without the id is not selected
     assert _gate(tmp_path, "--reports", str(_report(tmp_path, entries))) == 0
+    forms = facts_check.load_project(tmp_path).runner_forms
+    assert files_selection(check, forms) is None
 
 
 def test_a_later_form_accepts_what_an_earlier_one_refuses() -> None:
@@ -504,3 +507,75 @@ def test_exclude_requires_leaves_other_facts_judged_with_reports(
     assert "✗ AAA-003" in out
     assert "not run" in out
     assert "red facts: AAA-002, AAA-003" in out
+
+
+# ---- final review: fail-closed option and report faults ------------------------------
+
+
+def test_an_owner_no_fact_carries_is_a_usage_error_that_names_it(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    facts = [_fact("AAA-001", PLAIN, owner="core")]
+    reports = _pytest_project(tmp_path, facts, OWNER)
+    assert _gate(tmp_path, "--reports", str(reports), "--owner", "nobody") == 2
+    captured = capsys.readouterr()
+    assert "unknown owner in --owner: nobody" in captured.err
+    assert "✓" not in captured.out
+    # also with no reports at all
+    assert _gate(tmp_path, "--reports", str(tmp_path / "missing"), "--owner", "nobody") == 2
+
+
+def test_a_non_mapping_fact_set_entry_is_a_fault_without_a_schema(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _pytest_project(tmp_path, [_fact("AAA-001", PLAIN)])
+    facts_file = tmp_path / SPECS / "x-facts.md"
+    facts_file.write_text(facts_file.read_text() + "- just a string\n", encoding="utf-8")
+    assert _gate(tmp_path, "--orphans") == 1
+    assert "just a string" in capsys.readouterr().out
+
+
+def test_no_report_at_all_fails_the_gate_for_every_gated_fact(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`no report under` is not itself the failure: each gated fact reads `not run`, red.
+    Only a repository with nothing to gate (a swift-only owner) stays green."""
+    swift = "swift test --package-path agent --filter X"
+    toml = (
+        "[facts]\nowner = true\n"
+        "[facts.check_forms]\nswift = ['swift test --package-path agent --filter *']\n"
+    )
+    facts = [_fact("AAA-001", swift, owner="agent"), _fact("AAA-002", PLAIN, owner="core")]
+    _pytest_project(tmp_path, facts, toml)
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    for directory in (empty, tmp_path / "missing"):
+        assert _gate(tmp_path, "--reports", str(directory), "--implemented", "--owner", "core") == 1
+        out = capsys.readouterr().out
+        assert "no report under" in out
+        assert "✗ red facts: AAA-002" in out
+        assert _gate(tmp_path, "--reports", str(directory), "--implemented") == 1
+        capsys.readouterr()
+    assert _gate(tmp_path, "--reports", str(empty), "--implemented", "--owner", "agent") == 0
+
+
+def test_a_declared_release_report_with_no_file_fails_the_gate(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    toml = (
+        '[facts]\nrelease_reports = ["rust-release"]\n'
+        "[facts.check_forms]\ncargo = ['cargo test -p * --test *']\n"
+    )
+    check = "cargo test -p demo --test api"
+    _project(tmp_path, [_fact("AAA-001", check)], toml)
+    members = {"demo": tmp_path / "crates" / "demo"}
+    (members["demo"] / "tests").mkdir(parents=True)
+    (members["demo"] / "tests" / "api.rs").write_text("fn works() {}\n", encoding="utf-8")
+    # the debug job was cancelled; the release report landed under a misspelt name
+    path = tmp_path / "reports" / "rust-releas.json"
+    path.parent.mkdir()
+    entry = {"title": "works", "outcome": "passed", "binary": "demo::api"}
+    path.write_text(json.dumps({"demo::api::works": entry}), encoding="utf-8")
+    argv = ["--root", str(tmp_path), "--reports", str(path.parent)]
+    assert facts_check.main(argv, members=lambda: members) == 1
+    assert "release report not found: rust-release" in capsys.readouterr().out

@@ -207,7 +207,7 @@ entry of the binary is selected, and there must be one.
 
 `release_reports` lists the **names of the reports** (the file's stem, which is the job name, without
 `.json`) written by release-profile jobs. A `--release` check reads only those; any other cargo check
-reads only the others. A `--release` check with no release report is `not run`.
+reads only the others. A `--release` check with no release report is `not run`. When any report is read, a name listed here with no report file fails the gate (`release report not found: <name>`), whatever the checks: a misspelt artifact or a cancelled release job is never silent.
 
 The static audit, in every mode including `--orphans`: `<pkg>` is a workspace member (the manifest
 directories come from `cargo metadata`, which runs once, only when a cargo check exists, offline);
@@ -241,7 +241,7 @@ cites is an orphan, and an id a line cites that no fact defines is **dangling**;
 ## Owner
 
 With `owner = true`, `cpt facts --owner <name>` judges only the facts whose `owner` field is `<name>`.
-Without it, `--owner` is an error (exit 2).
+Without it, `--owner` is an error (exit 2), and so is an owner no fact carries (named in the message).
 
 ## Schema
 

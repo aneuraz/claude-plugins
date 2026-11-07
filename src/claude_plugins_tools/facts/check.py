@@ -40,7 +40,7 @@ import re
 import shlex
 import subprocess
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NamedTuple
@@ -69,8 +69,8 @@ from claude_plugins_tools.project import Project, ProjectError, load_project
 SPEC_SUBDIR = Path("docs") / "superpowers" / "specs"
 RANGE_PATTERN = re.compile(r"([A-Z]{2,4})-(\d{3}) (?:à|to) \1-(\d{3})")
 MARKER_PATTERN = re.compile(r"(?:^|\s)-m\s+(\w+)")
-# The bare gate stays local: Playwright needs an end-to-end stack (services,
-# a built front end, browsers), so it runs only when named explicitly.
+# The local mode runs these by default; Playwright needs an end-to-end stack (services,
+# a built front end, browsers), so it is only ever judged from reports.
 #: The statuses --implemented does not list as pending: judged, or replaced.
 LEDGER_CLOSED = ("@implemented", "@superseded")
 LOCAL_RUNNERS = ("pytest", "vitest", "cargo")
@@ -276,7 +276,8 @@ def build_parser(parser: argparse.ArgumentParser | None = None) -> argparse.Argu
         "--runner",
         default=",".join(LOCAL_RUNNERS),
         type=_runner_list,
-        help="comma list of runners to execute (default: pytest,vitest — no e2e stack)",
+        help="comma list of runners the local mode executes (default: pytest,vitest,cargo; "
+        "other runners are only judged from reports)",
     )
     parser.add_argument(
         "--reports",
@@ -325,6 +326,7 @@ class Findings:
     pending: list[str] = field(default_factory=list)
     schema: list[str] = field(default_factory=list)
     dangling: list[str] = field(default_factory=list)
+    report_faults: list[str] = field(default_factory=list)
     orphan_text: str = "missing from the design"
 
     def add(self, verdict: Verdict) -> None:
@@ -339,6 +341,8 @@ class Findings:
 
     def print(self, orphans_only: bool) -> int:
         """Say what was found, and the exit code."""
+        for fault in self.report_faults:
+            print(f"✗ {fault}")
         for fault in self.schema:
             print(f"✗ schema: {fault}")
         if self.dangling:
@@ -353,7 +357,14 @@ class Findings:
             print(f"- not run: {entry}")
         for entry in self.pending:
             print(f"- pending: {entry}")
-        bad = self.failed or self.orphans or self.ambiguous or self.schema or self.dangling
+        bad = (
+            self.report_faults
+            or self.failed
+            or self.orphans
+            or self.ambiguous
+            or self.schema
+            or self.dangling
+        )
         if not bad:
             print(
                 "✓ no orphan fact, no ambiguous check" + ("" if orphans_only else ", no red fact")
@@ -361,12 +372,19 @@ class Findings:
         return 1 if bad else 0
 
 
-def _usage_error(args: argparse.Namespace, project: Project, known: Mapping[str, object]) -> str:
+def _usage_error(
+    args: argparse.Namespace,
+    project: Project,
+    known: Mapping[str, object],
+    owners: Collection[object],
+) -> str:
     """What is wrong with --owner or --only for this project, or the empty string."""
     if args.owner is not None and not project.owner:
         return "--owner needs `owner = true` under [facts] in .claude/project.toml"
     if unknown := [fact_id for fact_id in args.only if fact_id not in known]:
         return f"unknown fact id in --only: {', '.join(unknown)}"
+    if args.owner is not None and args.owner not in owners:
+        return f"unknown owner in --owner: {args.owner}"
     return ""
 
 
@@ -375,6 +393,24 @@ def _kept(fact: Mapping[str, object], args: argparse.Namespace) -> bool:
     if args.only and fact["id"] not in args.only:
         return False
     return args.owner is None or fact.get("owner") == args.owner
+
+
+def _missing_release(
+    reports: Reports | None, declared: Collection[str], orphans_only: bool
+) -> list[str]:
+    """The fault for declared release reports that are absent while others were read."""
+    missing = [name for name in declared if reports and not orphans_only and name not in reports]
+    return [f"release report not found: {', '.join(missing)}"] if missing else []
+
+
+def _non_mappings(raw_sets: Mapping[Path, list]) -> list[str]:
+    """A fact-set entry that is not a mapping is a fault, never dropped silently."""
+    return [
+        f"{facts_file.name}: entry {entry!r} is not a mapping"
+        for facts_file, facts in raw_sets.items()
+        for entry in facts
+        if not isinstance(entry, dict)
+    ]
 
 
 def run(args: argparse.Namespace, members: cargo.Members | None = None) -> int:
@@ -402,17 +438,23 @@ def run(args: argparse.Namespace, members: cargo.Members | None = None) -> int:
         facts_file: [fact for fact in facts if isinstance(fact, dict)]
         for facts_file, facts in raw_sets.items()
     }
+    found = Findings()
+    found.ambiguous += _non_mappings(raw_sets)
     known = {
         fact["id"]: fact.get("status")
         for facts in fact_sets.values()
         for fact in facts
         if "id" in fact
     }
-    if usage := _usage_error(args, project, known):
+    owners = {fact.get("owner") for facts in fact_sets.values() for fact in facts}
+    # With no report at all, each gated fact reads `not run` and is red; but a declared
+    # release job whose report is absent among others (cancelled job, misspelt artifact)
+    # would leave the debug side judged from the wrong run.
+    found.report_faults += _missing_release(reports, project.release_reports, args.orphans)
+    if usage := _usage_error(args, project, known, owners):
         print(f"✗ {usage}", file=sys.stderr)
         return 2
 
-    found = Findings()
     if project.orphans == "facts-lines":
         found.orphan_text = "not cited on any *Facts :* line"
     seen: set[str] = set()

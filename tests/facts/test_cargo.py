@@ -247,6 +247,7 @@ def test_the_gate_is_green_when_reports_prove_the_check(
         ("backup_writes_a_tree_and_a_recoverable_key", "passed"),
         ("backup_fails_when_the_key_cannot_be_sealed", "passed"),
     )
+    _report(tmp_path, "rust-release", "cap::bench_ingest", ("p95_under_100ms", "passed"))
     assert _gate(tmp_path, capsys, "--implemented")[0] == 0
 
 
