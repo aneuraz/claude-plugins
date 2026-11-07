@@ -4,11 +4,11 @@
 
 **Goal:** `candle` uses the `datazard-plugins` marketplace and the `claude-plugins-tools` package instead of its copied skills, its `scripts/wiki`, `scripts/facts_check.py`, `scripts/facts_report.py` and the rule pages the packs now hold, with its CI green; and `core` and the tooling receive what this first migration needs.
 
-**Architecture:** Two repositories, in order. Part A changes `claude-plugins` (`~/git/claude-plugins`, branch `migrate/candle-prereqs`) and publishes a commit; Part B migrates `candle` in a worktree at `origin/main` (`git -C ~/git/candle worktree add .claude/worktrees/plugins-migrate -b plugins/migrate origin/main`), pinned to that commit. A one-off script, kept in `claude-plugins/tools/` for the later migrations, rewrites citations from `claude-plugins`'s `docs/rule-classification.md`.
+**Architecture:** Two repositories, in order. Part A changes `claude-plugins` (`<claude-plugins checkout>`, branch `migrate/candle-prereqs`) and publishes a commit; Part B migrates `candle` in a worktree at `origin/main` (`git -C <candle checkout> worktree add .claude/worktrees/plugins-migrate -b plugins/migrate origin/main`), pinned to that commit. A one-off script, kept in `claude-plugins/tools/` for the later migrations, rewrites citations from `claude-plugins`'s `docs/rule-classification.md`.
 
 **Tech Stack:** Python 3.14, uv workspaces, pytest, the `cpt` CLI, GitHub Actions, Claude Code plugins.
 
-**Spec:** `~/git/claude-plugins/docs/superpowers/specs/2026-11-06-claude-plugins-design.md` (*What stays in each project*, *Citing a rule that left the wiki*, *The `qa` agent*, *Detecting a session without its rules*). Plan 1: `docs/superpowers/plans/2026-11-06-build-claude-plugins.md` (*Left for plan 2*, and the owner's decision at its end).
+**Spec:** `<claude-plugins checkout>/docs/superpowers/specs/2026-11-06-claude-plugins-design.md` (*What stays in each project*, *Citing a rule that left the wiki*, *The `qa` agent*, *Detecting a session without its rules*). Plan 1: `docs/superpowers/plans/2026-11-06-build-claude-plugins.md` (*Left for plan 2*, and the owner's decision at its end).
 
 ## Owner's rulings for this plan (2026-11-06)
 
@@ -54,7 +54,7 @@
 
 **Files:** Modify `plugins/core/skills/github-project-tracking/SKILL.md`, `plugins/core/skills/spec-to-facts/SKILL.md`, `docs/rule-classification.md`
 
-- [ ] **Step 1:** Read `git -C ~/git/candle show origin/main:docs/wiki/rules/project-tracking.md` and `…/documentation-chain.md`; list each section as generic or `candle`'s own.
+- [ ] **Step 1:** Read `git -C <candle checkout> show origin/main:docs/wiki/rules/project-tracking.md` and `…/documentation-chain.md`; list each section as generic or `candle`'s own.
 - [ ] **Step 2:** `github-project-tracking` gains *What you discover along the way* (four discoveries, four destinations; a debt's unacceptability clause; none is settled in silence) and *Closing a decision* (closed by a decision page with its reason; the commit linked before closing), without `candle` names.
 - [ ] **Step 3:** `spec-to-facts` gains in its lifecycle: the milestone's cross-cutting consistency review before the PR leaves draft; every milestone ends with a documentation task; what git does not track does not exist.
 - [ ] **Step 4:** `docs/rule-classification.md`: the two rows become `split`, `target` = `core:github-project-tracking` / `core:spec-to-facts`, with a note naming the sections. `tests/test_packs.py::test_every_classified_rule_exists` checks only `rules-*` targets: confirm it ignores `core:` targets (adjust the test if not).
@@ -72,7 +72,7 @@
 - [ ] **Step 1: Write the failing tests:** `test_code_citation_rewritten`; `test_markdown_link_rewritten` with `../rules/x.md`, `../../docs/wiki/rules/x.md` from `examples/README.md`, `wiki/rules/x.md` from `docs/*.md`, and a bare `x.md` from inside `docs/wiki/rules/`; `test_split_slug_kept`; `test_stays_slug_kept`; `test_non_slug_rows_skipped`; `test_unknown_slug_unmapped_exit_1`; `test_anchor_link_unmapped`; `test_log_md_skipped`; `test_archived_file_skipped` (a dated file on or before `archive_until`) and `test_dated_file_after_archive_rewritten`; `test_apply_deletes_moved_pages_only`; `test_apply_writes_nothing_when_unmapped`; `test_dry_run_changes_nothing`.
 - [ ] **Step 2: Run** `uv run pytest tests/tools -q`. Expected: FAIL.
 - [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run** the tests, then a dry run against a `git -C ~/git/candle worktree add --detach "$TMPDIR/candle-dry" origin/main` checkout carrying the `candle` example `.claude/project.toml` with `archive_until` set to today. Expected: PASS; the dry run lists rewrites and 0 unmapped (or lists them for Task B2). Remove the worktree.
+- [ ] **Step 4: Run** the tests, then a dry run against a `git -C <candle checkout> worktree add --detach "$TMPDIR/candle-dry" origin/main` checkout carrying the `candle` example `.claude/project.toml` with `archive_until` set to today. Expected: PASS; the dry run lists rewrites and 0 unmapped (or lists them for Task B2). Remove the worktree.
 - [ ] **Step 5:** Commit `feat(tools): the citation migration script`.
 
 ### Task A4: The wiki lint keeps the log's history
@@ -113,7 +113,7 @@
 
 **Files:** every file the script rewrites; the moved rule pages (deleted); the six `split` pages; the hubs listing rules (`docs/wiki/hubs/*`); `SECURITY.md`; `docs/wiki/log.md` (one appended entry); `docs/wiki/index.md`
 
-- [ ] **Step 1:** Dry run `uv run --project ~/git/claude-plugins python ~/git/claude-plugins/tools/migrate_citations.py --repo . --source candle`; settle each unmapped citation by hand (listed in the commit message).
+- [ ] **Step 1:** Dry run `uv run --project <claude-plugins checkout> python <claude-plugins checkout>/tools/migrate_citations.py --repo . --source candle`; settle each unmapped citation by hand (listed in the commit message).
 - [ ] **Step 2:** `--apply`.
 - [ ] **Step 3:** Reduce each `split` page to `candle`'s application: title states the application, first line cites the pack rule, generic text goes.
 - [ ] **Step 4:** Hubs: a hub left with no `candle` page stays, listing the pack rules it frames. `SECURITY.md`'s *Code security rules* paragraph names the enabled packs and the security hub.
@@ -127,7 +127,7 @@
 
 **Interfaces:** Consumes Task A2's sections.
 
-- [ ] **Step 1:** Bring in the *Priority and size* section from `~/git/candle/.claude/worktrees/priority-and-size/docs/wiki/rules/project-tracking.md` (uncommitted there) with its reworded Urgent line, and its log entry.
+- [ ] **Step 1:** Bring in the *Priority and size* section from `<candle checkout>/.claude/worktrees/priority-and-size/docs/wiki/rules/project-tracking.md` (uncommitted there) with its reworded Urgent line, and its log entry.
 - [ ] **Step 2:** Remove from both pages the sections Task A2 moved; each page names, in prose, the `core` skill and section that hold them (e.g. "`core:github-project-tracking`, *What you discover along the way*").
 - [ ] **Step 3:** Log entry; regenerate the index; run the CI set. Expected: pass.
 - [ ] **Step 4:** Commit `docs(wiki): documentation-chain and project-tracking keep candle's application`.
@@ -159,7 +159,7 @@
 ### Task C1: The declaration stays the project's, and one source for writing guidance
 
 - [ ] **Step 1:** In a scratch directory with a `.claude/settings.json` enabling only `core@datazard-plugins`: `claude plugin install rules-rust@datazard-plugins --scope user`, `claude plugin list --json`, then `claude plugin uninstall rules-rust@datazard-plugins --scope user`. Record whether user scope adds the pack to that project. If it does, add to `claude-plugins`'s root `README.md` "never install a `rules-*` pack at user scope", and to `core`'s `session_start.py` a line naming any `rules-*` pack enabled at user scope (tests first); commit and push (owner's confirmation). Plugins are not pinned, so `candle` needs no re-pin.
-- [ ] **Step 2:** Ask the owner to confirm moving `~/.claude/skills/humanizer` to `~/.claude/skills.retired/humanizer`, and to turn off `anthropic-skills:unslop` in `/skills` themselves.
+- [ ] **Step 2:** Ask the owner to confirm moving the user-level `humanizer` skill to a `skills.retired` directory beside it, and to turn off `anthropic-skills:unslop` in `/skills` themselves.
 
 ---
 
@@ -174,5 +174,5 @@ Measured in Task B4: `core`'s `SessionStart` context reaches the main session on
 - [ ] **Step 1: Write the failing tests:** emits JSON with `hookEventName == "SubagentStart"` and `additionalContext` = `base.md` without its independent-review section (a subagent never dispatches reviews; its controller does); silent on internal error; runs under Python 3.9; `hooks.json` pins the `SubagentStart` entry (no matcher, command path).
 - [ ] **Step 2: Run** them. Expected: FAIL.
 - [ ] **Step 3: Implement**, following `session_start.py`'s pattern (3.9, stdlib, one `try`, `except BaseException` silent). No pack check in subagents.
-- [ ] **Step 4: Real check:** `claude --plugin-dir ~/git/claude-plugins/plugins/core -p "Dispatch one general-purpose subagent with the prompt: 'Answer yes or no: does your context contain a section headed # Base rules? Then stop.' and report its answer verbatim."` → yes. Record it in the commit message.
+- [ ] **Step 4: Real check:** `claude --plugin-dir <claude-plugins checkout>/plugins/core -p "Dispatch one general-purpose subagent with the prompt: 'Answer yes or no: does your context contain a section headed # Base rules? Then stop.' and report its answer verbatim."` → yes. Record it in the commit message.
 - [ ] **Step 5:** Commit `feat(core): base rules reach subagents`.

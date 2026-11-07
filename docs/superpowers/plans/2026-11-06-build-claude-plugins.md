@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-06-claude-plugins-design.md`
 
-**Sources:** `candle` at `origin/main` = `275bce0` (`~/git/candle`), `candle-qa` (`~/git/candle-qa`), `candle-pseudo` (`~/git/candle-pseudo`), `capture` (`~/git/capture`). Read sources with `git -C ~/git/candle show 275bce0:<path>`; never edit those repositories in this plan.
+**Sources:** `candle` at `origin/main` = `275bce0` (`<candle checkout>`), `candle-qa` (`<candle-qa checkout>`), `candle-pseudo` (`<candle-pseudo checkout>`), `capture` (`<capture checkout>`). Read sources with `git -C <candle checkout> show 275bce0:<path>`; never edit those repositories in this plan.
 
 ## Global Constraints
 
@@ -120,7 +120,7 @@ claude-plugins/
 - [ ] **Step 3: Run** `uv run pytest tests/hooks/test_session_start.py -v`. Expected: FAIL (module missing).
 - [ ] **Step 4: Implement `session_start.py`.** Declared packs: keys of `enabledPlugins` in `$CLAUDE_PROJECT_DIR/.claude/settings.json` whose value is `true` and whose name ends `@datazard-plugins`. Loaded: the real lister runs `claude plugin list --json` with `cwd=project`, timeout 5 s; an entry counts when `enabled` is true and either its `scope` is `user` or `synced`, or its `projectPath` resolves to the project directory; plugins are matched on `id`; any failure returns `None`. `hooks.json`: one `SessionStart` entry, no matcher (all sources), command `python3 "${CLAUDE_PLUGIN_ROOT}/hooks/session_start.py"`.
 - [ ] **Step 5: Run** the tests. Expected: PASS.
-- [ ] **Step 6: Check in a real session:** from a scratch directory, `claude --plugin-dir ~/git/claude-plugins/plugins/core -p "Quote the first heading of the base rules in your context."`. Expected: the answer quotes `base.md`'s first heading. Then re-check the cap: write a 12,000-character `base.md` in a scratch copy of the plugin, rerun, and record in the commit message whether Claude got the text or a file path and preview (the spec marks the 10,000 limit "to re-check").
+- [ ] **Step 6: Check in a real session:** from a scratch directory, `claude --plugin-dir <claude-plugins checkout>/plugins/core -p "Quote the first heading of the base rules in your context."`. Expected: the answer quotes `base.md`'s first heading. Then re-check the cap: write a 12,000-character `base.md` in a scratch copy of the plugin, rerun, and record in the commit message whether Claude got the text or a file path and preview (the spec marks the 10,000 limit "to re-check").
 - [ ] **Step 7: Commit** `feat(core): base rules injected at session start`.
 
 ### Task 3: The review-reminder hook
@@ -242,7 +242,7 @@ claude-plugins/
 - [ ] **Step 2: Run** `uv run pytest tests/facts -v`. Expected: FAIL.
 - [ ] **Step 3: Port** `candle`'s `facts_check.py` and `facts_report.py`; `--root` (default: the current directory) feeds `root`; `_agent_selector_fault`'s hard-coded `ROOT / "agent"` (candle's vitest directory) becomes `--vitest-root` (default: `agent`, relative to `--root`). Add `--exclude-requires` and the `requires` audit from `candle-pseudo`; the audit runs only when `--exclude-requires` is given, so that a run without the flag behaves exactly as `candle`'s (a `candle` fact using `-m integration` without `requires` stays valid).
 - [ ] **Step 4: Run** the tests. Expected: PASS.
-- [ ] **Step 5: Check equivalence on `candle`:** in a scratch copy of `candle` at `275bce0`, `uv run --with ~/git/claude-plugins cpt facts --orphans --root .` prints the same verdict as `uv run python scripts/facts_check.py --orphans`.
+- [ ] **Step 5: Check equivalence on `candle`:** in a scratch copy of `candle` at `275bce0`, `uv run --with <claude-plugins checkout> cpt facts --orphans --root .` prints the same verdict as `uv run python scripts/facts_check.py --orphans`.
 - [ ] **Step 6: Commit** `feat(tools): cpt facts`.
 
 `capture`'s `cargo test`/`swift test` counters and its positional scope argument are not ported here: plan 2 adds them when `capture` migrates.
@@ -305,7 +305,7 @@ claude-plugins/
 ### Task 14: Publish
 
 - [ ] **Step 1: Ask the owner to confirm** creating the public repository `aneuraz/claude-plugins` and pushing `main`. Do not proceed without it.
-- [ ] **Step 2:** `gh repo create aneuraz/claude-plugins --public --source ~/git/claude-plugins --push`.
+- [ ] **Step 2:** `gh repo create aneuraz/claude-plugins --public --source <claude-plugins checkout> --push`.
 - [ ] **Step 3: Check** `claude plugin marketplace add aneuraz/claude-plugins` succeeds from a scratch directory, and `uv run --with "claude-plugins-tools @ git+https://github.com/aneuraz/claude-plugins@<sha>" cpt wiki search sql` lists `rules-security:parameterised-sql`.
 - [ ] **Step 4:** Report the commit SHA plan 2 will pin.
 
