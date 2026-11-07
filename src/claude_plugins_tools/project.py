@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -51,6 +51,9 @@ class Project:
     # [facts]
     #: The forms a pytest check may take, its selectors removed; None: no form audit.
     check_forms: tuple[str, ...] | None = None
+    #: Per-runner forms from the `[facts.check_forms]` sub-table (`vitest`, `playwright`,
+    #: `vitest-files`, `cargo`, `swift`); empty when `check_forms` is a flat list.
+    runner_forms: dict[str, tuple[str, ...]] = field(default_factory=dict)
     # [tracking]
     project: str | None = None
     rule_page: str | None = None
@@ -92,6 +95,17 @@ def _tables(fields: tuple[str, ...], optional: dict[str, tuple[str, ...]] | None
     return check
 
 
+#: The keys of the `[facts.check_forms]` sub-table; `pytest` is the flat list's own.
+RUNNER_FORM_KEYS = ("pytest", "vitest", "playwright", "vitest-files", "cargo", "swift")
+
+
+def _check_forms(value: object) -> bool:
+    """A flat list of strings (the pytest forms), or a table of per-runner lists."""
+    if isinstance(value, dict):
+        return set(value) <= set(RUNNER_FORM_KEYS) and all(map(_strs, value.values()))
+    return _strs(value)
+
+
 def _is_date(value: object) -> bool:
     return isinstance(value, date)
 
@@ -116,7 +130,7 @@ _SCHEMA: dict[str, dict[str, Any]] = {
         "archive_named": _strs,
         "index_sections": _tables(("title", "dir", "glob"), {"kind": ("files", "headings")}),
     },
-    "facts": {"check_forms": _strs},
+    "facts": {"check_forms": _check_forms},
     "tracking": {"project": _str, "rule_page": _str},
     "qa": {
         "up": _str,
@@ -173,6 +187,13 @@ def load_project(root: Path) -> Project:
                 raise ProjectError(f"{path}: unknown key {section}.{key}")
             if not check(value):
                 raise ProjectError(f"{path}: {section}.{key} has an invalid value: {value!r}")
-            field = _FIELDS.get((section, key), key)
-            values[field] = _build(key, value)
+            if isinstance(value, dict):  # [facts.check_forms]
+                if "pytest" in value:
+                    values["check_forms"] = tuple(value["pytest"])
+                values["runner_forms"] = {
+                    runner: tuple(forms) for runner, forms in value.items() if runner != "pytest"
+                }
+                continue
+            name = _FIELDS.get((section, key), key)
+            values[name] = _build(key, value)
     return Project(root=root, **values)

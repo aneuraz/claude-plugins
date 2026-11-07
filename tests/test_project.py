@@ -96,3 +96,38 @@ def test_index_section_refuses_an_unknown_kind_or_key(tmp_path, extra):
     write(tmp_path, section + extra + "\n")
     with pytest.raises(ProjectError, match="index_sections"):
         load_project(tmp_path)
+
+
+def test_check_forms_sub_table(tmp_path):
+    write(
+        tmp_path,
+        '[facts.check_forms]\npytest = ["uv run pytest -v"]\n'
+        "vitest = ['pnpm exec vitest run <file> -t \"<id>\"']\n"
+        'playwright = ["a"]\nvitest-files = ["b"]\ncargo = ["c"]\nswift = ["d"]\n',
+    )
+    project = load_project(tmp_path)
+    assert project.check_forms == ("uv run pytest -v",)
+    assert project.runner_forms == {
+        "vitest": ('pnpm exec vitest run <file> -t "<id>"',),
+        "playwright": ("a",),
+        "vitest-files": ("b",),
+        "cargo": ("c",),
+        "swift": ("d",),
+    }
+
+
+def test_flat_check_forms_leave_no_runner_forms(tmp_path):
+    write(tmp_path, '[facts]\ncheck_forms = ["uv run pytest -v"]\n')
+    project = load_project(tmp_path)
+    assert project.check_forms == ("uv run pytest -v",)
+    assert project.runner_forms == {}
+
+
+@pytest.mark.parametrize(
+    "body",
+    ['golang = ["x"]', 'vitest = "x"', "vitest = [1]"],
+)
+def test_check_forms_sub_table_refuses_a_bad_entry(tmp_path, body):
+    write(tmp_path, f"[facts.check_forms]\n{body}\n")
+    with pytest.raises(ProjectError, match=r"facts\.check_forms"):
+        load_project(tmp_path)

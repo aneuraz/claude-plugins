@@ -23,6 +23,7 @@ Skills cite this schema by its keys (`[wiki] path`, `[qa] up`), not by this file
 | | `archive_named` | list of strings | files archived by name, optional |
 | | `index_sections` | list of tables `{title, dir, glob, kind}` | the source sections of the wiki index; `kind` is optional: `"files"` (the default) lists each file by its name, `"headings"` by its first `# ` heading |
 | `[facts]` | `check_forms` | list of strings | the forms a pytest check of a fact may take: the check's tokens, its `file::function` selectors removed, must equal one form's, where a `*` token stands for any one token. Absent: `cpt facts` audits no check's form (its selectors still are) |
+| | `[facts.check_forms]` | table of lists of strings | the alternative to a flat `check_forms`, with one optional list per runner: `pytest` (the flat list's meaning), `vitest` and `playwright` (the by-id forms), `vitest-files`, `cargo`, `swift`. Any other key is an error. See below |
 | `[tracking]` | `project` | string | the tracking Project's title |
 | | `rule_page` | string | the project's tracking rule page, from the repository root |
 | `[qa]` | `up`, `down`, `status`, `guard` | string | command lines |
@@ -126,3 +127,23 @@ name = "agent"
 command = "uv run python -m scripts.qa_stack agent '<question>'"
 description = "candle agent, one question per call"
 ```
+
+## Per-runner check forms
+
+`check_forms` is either the flat list above or the sub-table `[facts.check_forms]`, never both (TOML
+allows one). In the sub-table, each key lists the command lines a check of that runner may take, and a
+fact's check must equal one of them token for token, where `*` stands for any one token. The by-id
+forms of `vitest` and `playwright` also use `<file>` (the test file, relative to the repository root)
+and `<id>` (the id of the fact, which must be the fact's own):
+
+```toml
+[facts.check_forms]
+vitest = ['pnpm exec vitest run <file> -t "<id>"']
+playwright = ['pnpm exec playwright test <file> -g "<id>"']
+```
+
+A fact with such a check is green when, in the reports, at least one entry of `<file>` has an own title
+starting with `"<id> "` and every such entry passed (the `-t`/`-g` pattern itself is not evaluated). The
+audit, in every mode, requires the file to exist and hold a test whose title starts with the id.
+`vitest-files`, `cargo` and `swift` are read and kept; their checks are not yet matched, so a fact using
+one of those forms is still a fault.
