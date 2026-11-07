@@ -236,3 +236,127 @@ def test_path_in_code_span_not_reported_unmapped(table):
     new, events = run(line, "docs/wiki/reference/r.md", table)
     assert "`docs/wiki/rules/x.md`" in new
     assert [e.kind for e in events] == ["rewrite"]
+
+
+# --- plan 3, Task A5: the deferred fixes ---
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        ('"Why x"', 'the rule (`rules-security:x`, "Why x")'),
+        ("'Why x'", "the rule (`rules-security:x`, 'Why x')"),
+    ],
+)
+def test_link_title_kept(table, title, expected):
+    new, events = run(f"See [the rule](../rules/x.md {title}).\n", "docs/wiki/d/a.md", table)
+    assert new == f"See {expected}.\n"
+    assert [e.kind for e in events] == ["rewrite"]
+
+
+def test_link_title_dropped_never_silently_on_kept_page(table):
+    text = '[s](../rules/sp.md "T")\n'
+    assert run(text, "docs/wiki/d/a.md", table)[0] == text
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "![alt](../rules/x.md)",
+        '![alt](../rules/x.md "T")',
+        "[![alt](../rules/x.md)](../rules/x.md)",
+        "[a ![i](../rules/x.md) b](../rules/x.md)",
+        "![alt [b]](../rules/x.md)",
+    ],
+)
+def test_image_links_to_moved_pages_unmapped_and_untouched(table, line):
+    new, events = run(line + "\n", "docs/wiki/d/a.md", table)
+    assert new == line + "\n"
+    assert events
+    assert {e.kind for e in events} == {"unmapped"}
+
+
+def test_events_ordered_by_line(table):
+    text = "[a](wiki/rules/x.md)\nwiki:rules/x\n[b](wiki/rules/x.md#f)\nwiki:rules/nope\n"
+    _, events = run(text, "docs/guide.md", table)
+    assert [e.line for e in events] == [1, 2, 3, 4]
+
+
+def test_events_ordered_by_file_then_line(tmp_path, capsys):
+    files = {
+        **BASE,
+        "src/b.py": "# a\n# wiki:rules/nope\n",
+        "docs/g.md": "[a](wiki/rules/x.md)\n\nwiki:rules/x\n[a](wiki/rules/x.md#f)\n",
+    }
+    repo = make_repo(tmp_path, files)
+    assert cli(repo) == 1
+    where = [
+        line.split()[1].rstrip(":")
+        for line in capsys.readouterr().out.splitlines()
+        if line.startswith(("rewrite", "UNMAPPED", "kept"))
+    ]
+    assert where == sorted(where, key=lambda w: (w.rsplit(":", 1)[0], int(w.rsplit(":", 1)[1])))
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        '<a href="x.md">r</a>',
+        "<a href='x.md'>r</a>",
+        "[r]( x.md)",
+        "[r](  x.md )",
+    ],
+)
+def test_bare_sibling_targets_after_quote_or_paren_space(table, line):
+    new, events = run(line + "\n", "docs/wiki/rules/y.md", table)
+    assert new == line + "\n"
+    assert [e.kind for e in events] == ["unmapped"]
+
+
+def test_bare_prose_sibling_not_reported(table):
+    _, events = run("see x.md for details\n", "docs/wiki/rules/y.md", table)
+    assert events == []
+
+
+def test_indented_code_block_untouched(table):
+    text = (
+        "para\n\n    wiki:rules/x\n    [a](wiki/rules/x.md)\n\n"
+        "\twiki:rules/x\n\nafter wiki:rules/x\n"
+    )
+    new, events = run(text, "docs/guide.md", table)
+    assert new == text.replace("after wiki:rules/x", "after rules-security:x")
+    kept = [e for e in events if e.kind == "kept"]
+    assert [e.line for e in kept] == [3, 4, 6]
+    assert all(e.reason == "inside an indented code block" for e in kept)
+    assert [e.kind for e in events].count("rewrite") == 1
+
+
+def test_indented_line_continuing_a_paragraph_is_text(table):
+    text = "para\n    wiki:rules/x\n"
+    assert run(text, "docs/guide.md", table)[0] == "para\n    rules-security:x\n"
+
+
+def test_indented_list_continuation_is_text(table):
+    text = "- item\n\n    wiki:rules/x\n"
+    assert run(text, "docs/guide.md", table)[0] == "- item\n\n    rules-security:x\n"
+
+
+def test_indented_block_at_file_start(table):
+    text = "    wiki:rules/x\n"
+    new, events = run(text, "docs/guide.md", table)
+    assert new == text
+    assert [e.kind for e in events] == ["kept"]
+
+
+def test_over_indented_fence_is_indented_code(table):
+    text = "para\n\n    ```\n    wiki:rules/x\n    ```\nwiki:rules/x\n"
+    new, events = run(text, "docs/guide.md", table)
+    assert new == "para\n\n    ```\n    wiki:rules/x\n    ```\nrules-security:x\n"
+    assert [e.kind for e in events] == ["kept", "rewrite"]
+
+
+def test_three_space_fence_is_a_fence(table):
+    text = "   ```\nwiki:rules/x\n   ```\n"
+    new, events = run(text, "docs/guide.md", table)
+    assert new == text
+    assert events[0].reason == "inside a code fence"

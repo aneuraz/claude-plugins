@@ -30,7 +30,7 @@ RULES_DIR = "docs/wiki/rules"
 _SPLIT_CELL = 2
 _SLUG = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _CODE = re.compile(r"wiki:rules/([A-Za-z0-9_-]+)(#[\w-]+)?")
-_LINK = re.compile(r"(?<!!)\[([^\]]*)\]\(([^)\s]+)((?:\s+\"[^\"]*\")?)\)")
+_LINK = re.compile(r"(?<!!)\[([^\[\]]*)\]\(([^)\s]+)(\s+(?:\"[^\"]*\"|'[^']*'))?\)")
 _SCHEME = re.compile(r"^[a-z][a-z0-9+.-]*:")
 
 
@@ -117,35 +117,70 @@ def _sub_links(
 
 _FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 _PATH = re.compile(r"[\w./-]+\.md")
-_LINKY = re.compile(r"(?:[(<]|\]:\s*)$")
+_LINKY = re.compile(r"(?:[(<\"']|\(\s+|\]:\s*)$")
 
 
-def _chunks(text: str) -> list[tuple[bool, int, str]]:
-    """Split Markdown into (fenced, first line number, text) runs."""
-    runs: list[tuple[bool, int, str]] = []
+_LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
+FENCE_REASON = "inside a code fence"
+INDENT_REASON = "inside an indented code block"
+
+
+def _indented(line: str) -> bool:
+    return line.expandtabs(4).startswith("    ") and bool(line.strip())
+
+
+def _closes(fence: str, marker: str, line: str) -> bool:
+    return marker[0] == fence[0] and len(marker) >= len(fence) and not line.strip().strip(fence[0])
+
+
+def _chunks(text: str) -> list[tuple[str | None, int, str]]:
+    """Split Markdown into (code reason or None, first line number, text) runs.
+
+    Code is a fenced block (fence lines indented 0-3 spaces) or a CommonMark indented block (4+
+    spaces or a tab, after a blank line, not continuing a paragraph). Under a list item the indented
+    lines are item content, not code (conservative: they stay rewritable).
+    """
+    lines = text.splitlines(keepends=True)
+    runs: list[tuple[str | None, int, str]] = []
     fence: str | None = None
-    for number, line in enumerate(text.splitlines(keepends=True), start=1):
+    in_list = False
+    in_indented = False
+    for index, line in enumerate(lines):
+        number = index + 1
         marker = _FENCE.match(line)
-        if fence is None and marker:
-            fence, fenced = marker.group(1), True
-        elif (
-            fence is not None
-            and marker
-            and marker.group(1)[0] == fence[0]
-            and len(marker.group(1)) >= len(fence)
-            and not line.strip().strip(fence[0])
-        ):
-            fence, fenced = None, True
+        reason: str | None
+        if fence is None and in_indented and (_indented(line) or not line.strip()):
+            # Blank lines stay in the block only when more indented code follows.
+            following = next((x for x in lines[index:] if x.strip()), "")
+            if line.strip() or _indented(following):
+                reason = INDENT_REASON
+            else:
+                reason, in_indented = None, False
+        elif fence is None and marker:
+            in_indented = False
+            fence, reason = marker.group(1), FENCE_REASON
+        elif fence is not None:
+            reason = FENCE_REASON
+            if marker and _closes(fence, marker.group(1), line):
+                fence = None
         else:
-            fenced = fence is not None
-        if runs and runs[-1][0] == fenced:
-            runs[-1] = (fenced, runs[-1][1], runs[-1][2] + line)
+            in_indented = False
+            previous = lines[index - 1] if index else ""
+            after_blank = index == 0 or not previous.strip()
+            in_indented = _indented(line) and not in_list and after_blank
+            reason = INDENT_REASON if in_indented else None
+            if _LIST_ITEM.match(line):
+                in_list = True
+            elif line.strip() and not line.startswith((" ", "\t")) and after_blank:
+                in_list = False
+        if runs and runs[-1][0] == reason:
+            runs[-1] = (reason, runs[-1][1], runs[-1][2] + line)
         else:
-            runs.append((fenced, number, line))
+            runs.append((reason, number, line))
     return runs
 
 
-def rewrite(
+def rewrite(  # noqa: PLR0915
     text: str,
     file: Path,
     repo: Path,
@@ -175,7 +210,9 @@ def rewrite(
         events.append(Event("rewrite", rel, line, old, new))
         return new
 
-    def chunk(part: str, first: int, fenced: bool) -> str:
+    def chunk(part: str, first: int, block: str | None) -> str:
+        fenced = block is not None
+
         def line_of(offset: int) -> int:
             return first + part.count("\n", 0, offset)
 
@@ -188,7 +225,7 @@ def rewrite(
                         line_of(match.start()),
                         match.group(0),
                         None,
-                        "inside a code fence",
+                        block or "",
                     )
                 )
                 return match.group(0)
@@ -215,11 +252,15 @@ def rewrite(
             handled.append(match.span())
             line = first + result.count("\n", 0, match.start())
             if fenced or in_span:
-                reason = "inside a code fence" if fenced else "inside an inline code span"
+                reason = block or "inside an inline code span"
                 events.append(Event("kept", rel, line, match.group(0), None, reason))
                 return match.group(0)
             target = table.get(slug)
-            new = f"{label} (`{target.pack_citation}`)" if target and target.pack_citation else ""
+            if target and target.pack_citation:
+                title = (match.group(3) or "").strip()
+                new = f"{label} (`{target.pack_citation}`{', ' + title if title else ''})"
+            else:
+                new = ""
             return decide(slug, fragment, match.group(0), new, line)
 
         out = _sub_links(result, spans, link)
@@ -250,8 +291,9 @@ def rewrite(
         return out
 
     if kind == "code":
-        return chunk(text, 1, fenced=False), events
-    return "".join(chunk(part, first, fenced) for fenced, first, part in _chunks(text)), events
+        return chunk(text, 1, None), events
+    out = "".join(chunk(part, first, block) for block, first, part in _chunks(text))
+    return out, sorted(events, key=lambda e: e.line)
 
 
 def _format(event: Event) -> str:
@@ -287,11 +329,11 @@ def main(argv: list[str] | None = None) -> int:
             continue
         kind: Literal["code", "markdown"] = "markdown" if path.endswith(".md") else "code"
         new_text, found = rewrite(text, Path(path), repo, kind, table)
-        events.extend(found)
+        events.extend(found)  # `rewrite` orders each file's events by line
         if new_text != text:
             changes[path] = new_text
 
-    for event in events:
+    for event in sorted(events, key=lambda e: (e.file.as_posix(), e.line)):
         print(_format(event))
     for page in doomed:
         print(f"delete    {page}")
